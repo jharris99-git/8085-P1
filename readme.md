@@ -10,8 +10,13 @@
 
 4. Run `python -m pip install -r requirements.txt`
 
-5. Enjoy.
+5. Run `deactivate`.
 
+## Using the Project
+
+Run `p1/Scripts/activate` to activate the virtual environment.
+
+Run `deactivate` to exit the virtual environment.
 
 ## Environment Structure
 
