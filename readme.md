@@ -2,15 +2,17 @@
 
 ## Installation
 
-1. Run `py -m venv ./p1`
+1. Open a terminal in the project root directory.
 
-2. Set `./p1/Scripts/python.exe` as the python interpreter in your dev environment.
+2. Run `py -m venv ./p1`
 
-3. Run `p1/Scripts/activate`
+3. Set `./p1/Scripts/python.exe` as the python interpreter in your dev environment.
 
-4. Run `python -m pip install -r requirements.txt`
+4. Run `p1/Scripts/activate`
 
-5. Run `deactivate`.
+5. Run `python -m pip install -r requirements.txt`
+
+6. Run `deactivate`.
 
 ## Using the Project
 
