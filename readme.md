@@ -18,7 +18,7 @@
 
 #### Start
 
-Open terminal in the project root directory.
+1. Open terminal in the project root directory.
 2. Run `p1/Scripts/activate` to activate the virtual environment.
 3. Run `python -m pip install -r requirements.txt` to make sure your local venv is up-to-date.
 
