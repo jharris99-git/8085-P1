@@ -7,7 +7,7 @@ pd.set_option('display.max_columns', 100)
 pd.set_option('display.width', 5000)
 
 
-def final_prep(data):
+def final_prep(data: pd.DataFrame):
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
@@ -18,6 +18,20 @@ def final_prep(data):
     label_data.to_csv('./datasets/prepped_label_data.csv', index=True)
 
 
+def prune(data: pd.DataFrame):
+    # # Drop rows with more than 4 null values
+    # data = data[data.isnull().sum(axis=1) < 4]
+
+    # Drop IP columns from the dataset
+    data = data.drop(['srcip', 'dstip'], axis=1)
+    return data
+
+
+def impute(data: pd.DataFrame):
+    return data
+
+
+# Define expected dtypes
 expected_dtypes = {'srcip': 'str',
                    'sport': 'str',
                    'dstip': 'str',
@@ -39,7 +53,11 @@ base_data.dsport = [literal_eval(x) if type(x) == str and x[0:2] == "0x" else in
 # Fix whitespace values in ct_ftp_cmd, to impute or prune later.
 base_data.ct_ftp_cmd = [None if x == " " else int(x) for x in base_data.ct_ftp_cmd.tolist()]
 
-# Do pruning, imputation, etc.
+# Do pruning.
+base_data = prune(base_data)
+
+# Do imputation.
+base_data = impute(base_data)
 
 # Drop redundant columns for Label and attack_cat prediction training data.
 final_prep(base_data)
