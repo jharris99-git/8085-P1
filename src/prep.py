@@ -11,11 +11,11 @@ def final_prep(data: pd.DataFrame):
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
-    ac_data.to_csv('./datasets/prepped_attack_cat_data.csv', index=True)
+    ac_data.to_csv('../datasets/prepped_attack_cat_data.csv', index=False)
 
     label_data = pd.DataFrame(data)
     label_data = label_data.drop('attack_cat', axis=1)
-    label_data.to_csv('./datasets/prepped_label_data.csv', index=True)
+    label_data.to_csv('../datasets/prepped_label_data.csv', index=False)
 
 
 def prune(data: pd.DataFrame):
