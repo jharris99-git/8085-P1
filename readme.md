@@ -25,7 +25,8 @@ Open terminal in the project root directory.
 #### Close
 
 1. Open terminal in the project root directory.
-2. Run `deactivate` to exit the virtual environment.
+2. Run `pip freeze > requirements.txt` to add any possible new requirements.
+3. Run `deactivate` to exit the virtual environment.
 
 ## Environment Structure
 
