@@ -8,6 +8,10 @@ pd.set_option('display.width', 5000)
 
 
 def final_prep(data: pd.DataFrame):
+    """
+
+    :param data:
+    """
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
@@ -19,6 +23,11 @@ def final_prep(data: pd.DataFrame):
 
 
 def prune(data: pd.DataFrame):
+    """
+
+    :param data:
+    :return: pd.DataFrame, pruned data
+    """
     # # Drop rows with more than 4 null values
     # data = data[data.isnull().sum(axis=1) < 4]
 
@@ -28,6 +37,11 @@ def prune(data: pd.DataFrame):
 
 
 def impute(data: pd.DataFrame):
+    """
+
+    :param data:
+    :return: pd.DataFrame, imputed data
+    """
     return data
 
 

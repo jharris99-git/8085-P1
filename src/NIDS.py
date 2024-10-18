@@ -2,8 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import pickle
-from train_label import feature_select_label
-from train_attack_cat import feature_select_attack_cat
+from train import feature_select, label_features, ac_features
 
 
 parser = argparse.ArgumentParser(
@@ -62,18 +61,21 @@ if __name__ == '__main__':
         y_test = None
         match args.task:
             case 'Label':
-                data = feature_select_label(data)
+                data = feature_select(data, label_features)
                 y_test = data['Label']
                 x_test = data.drop('Label', axis=1)
             case 'attack_cat':
-                data = feature_select_attack_cat(data)
+                if np.array(data.Label)[0] == 0:
+                    print('Label must be 1')
+                    exit(4)
+                data = feature_select(data, ac_features)
                 y_test = data['attack_cat']
                 x_test = data.drop('attack_cat', axis=1)
 
         y_pred = mdl.predict(x_test, y_test)
         print('Predicted values: ' + np.array(y_pred))
 
-    except pd.errors as e:
+    except pd.errors as e:  # Hopefully works
         print('invalid test data')
         exit(1)
 
