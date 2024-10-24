@@ -80,20 +80,21 @@ def process_data(data: pd.DataFrame):
     return data
 
 
-# Define expected dtypes
-expected_dtypes = {'srcip': 'str',
-                   'sport': 'str',
-                   'dstip': 'str',
-                   'dsport': 'str',
-                   }
+if __name__ == '__main__':
+    # Define expected dtypes
+    expected_dtypes = {'srcip': 'str',
+                       'sport': 'str',
+                       'dstip': 'str',
+                       'dsport': 'str',
+                       }
 
-# Import base CSV data from file.
-base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
-                        low_memory=False)
+    # Import base CSV data from file.
+    base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
+                            low_memory=False)
 
 
-# Fix, Prune, encode, and impute.
-process_data(base_data)
+    # Fix, Prune, encode, and impute.
+    process_data(base_data)
 
-# Do this column dropping in train.py
-# final_prep(base_data)
+    # Do this column dropping in train.py
+    # final_prep(base_data)
