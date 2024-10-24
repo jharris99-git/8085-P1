@@ -33,3 +33,5 @@
 - `/datasets` contains the original dataset as well as prepared datasets for use in training.
 - `/p1` contains the virtual environment files. This is local and should not be committed to the repository.
 - `/src` contains the python source files for the project.
+- `/models` contains serialized binaries of the preset model weights.
+- `/test_data` is where input data csv files should be stored.
