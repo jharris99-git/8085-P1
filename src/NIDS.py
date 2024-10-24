@@ -2,8 +2,9 @@ import argparse
 import numpy as np
 import pandas as pd
 import pickle
-from train import feature_select, label_features, ac_features
+from train import feature_select
 
+features = []
 
 parser = argparse.ArgumentParser(
     prog='NIDS',
@@ -30,12 +31,15 @@ if __name__ == '__main__':
             match args.task:
                 case 'Label':
                     match args.classifier:
-                        case 'label_m1':
-                            mdl_url = '../models/label_m1.pkl'
+                        case 'Label_RFC':
+                            mdl_url = '../models/Label_RFC.pkl'
+                            features = []
                         case 'label_m2':
                             mdl_url = '../models/label_m2.pkl'
+                            features = []
                         case 'label_m3':
                             mdl_url = '../models/label_m3.pkl'
+                            features = []
                         case _:
                             print('invalid classifer model')
                             exit(2)
@@ -43,10 +47,13 @@ if __name__ == '__main__':
                     match args.classifier:
                         case 'ac_m1':
                             mdl_url = '../models/ac_m1.pkl'
+                            features = []
                         case 'ac_m2':
                             mdl_url = '../models/ac_m2.pkl'
+                            features = []
                         case 'ac_m3':
                             mdl_url = '../models/ac_m3.pkl'
+                            features = []
                         case _:
                             print('invalid classifer model')
                             exit(2)
@@ -61,14 +68,14 @@ if __name__ == '__main__':
         y_test = None
         match args.task:
             case 'Label':
-                data = feature_select(data, label_features)
+                data = feature_select(data, features)
                 y_test = data['Label']
                 x_test = data.drop('Label', axis=1)
             case 'attack_cat':
                 if np.array(data.Label)[0] == 0:
                     print('Label must be 1')
                     exit(4)
-                data = feature_select(data, ac_features)
+                data = feature_select(data, features)
                 y_test = data['attack_cat']
                 x_test = data.drop('attack_cat', axis=1)
 
