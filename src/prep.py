@@ -28,11 +28,23 @@ def prune(data: pd.DataFrame):
     :param data:
     :return: pd.DataFrame, pruned data
     """
-    # # Drop rows with more than 4 null values
+    # Drop rows with more than 4 null values
     # data = data[data.isnull().sum(axis=1) < 4]
 
     # Drop IP columns from the dataset
     data = data.drop(['srcip', 'dstip'], axis=1)
+
+    return data
+
+
+def encode(data: pd.DataFrame):
+    """
+
+    :param data:
+    :return: pd.DataFrame, with encoded columns
+    """
+    data = pd.get_dummies(data, columns=['proto', 'state', 'service'])
+    print(data)
     return data
 
 
@@ -42,6 +54,14 @@ def impute(data: pd.DataFrame):
     :param data:
     :return: pd.DataFrame, imputed data
     """
+    data = data.fillna(0)
+    return data
+
+
+def process_data(data: pd.DataFrame):
+    data = prune(data)
+    data = encode(data)
+    data = impute(data)
     return data
 
 
@@ -65,13 +85,10 @@ base_data.dsport = ['00' if x == "-" else x for x in base_data.dsport.tolist()]
 base_data.dsport = [literal_eval(x) if type(x) == str and x[0:2] == "0x" else int(x) for x in base_data.sport.tolist()]
 
 # Fix whitespace values in ct_ftp_cmd, to impute or prune later.
-base_data.ct_ftp_cmd = [None if x == " " else int(x) for x in base_data.ct_ftp_cmd.tolist()]
+base_data.ct_ftp_cmd = [0 if x == " " else int(x) for x in base_data.ct_ftp_cmd.tolist()]
 
-# Do pruning.
-base_data = prune(base_data)
-
-# Do imputation.
-base_data = impute(base_data)
+# Prune, encode, and impute.
+process_data(base_data)
 
 # Do this column dropping in train.py
 # final_prep(base_data)
