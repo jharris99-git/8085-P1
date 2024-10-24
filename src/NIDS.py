@@ -33,7 +33,7 @@ if __name__ == '__main__':
                     match args.classifier:
                         case 'Label_RFC':
                             mdl_url = '../models/Label_RFC.pkl'
-                            features = []
+                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN']
                         case 'label_m2':
                             mdl_url = '../models/label_m2.pkl'
                             features = []
@@ -46,8 +46,8 @@ if __name__ == '__main__':
                 case 'attack_cat':
                     match args.classifier:
                         case 'ac_m1':
-                            mdl_url = '../models/ac_m1.pkl'
-                            features = []
+                            mdl_url = '../models/attack_cat_RFC.pkl'
+                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len', 'Sjit', 'Djit', 'Stime', 'Ltime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_flw_http_mthd', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'proto_ttp', 'state_URN', 'service_dhcp', 'service_ftp-data']
                         case 'ac_m2':
                             mdl_url = '../models/ac_m2.pkl'
                             features = []
@@ -68,16 +68,15 @@ if __name__ == '__main__':
         y_test = None
         match args.task:
             case 'Label':
-                data = feature_select(data, features)
                 y_test = data['Label']
-                x_test = data.drop('Label', axis=1)
+                x_test = data[features]
             case 'attack_cat':
-                if np.array(data.Label)[0] == 0:
+                if data['Label'].isin(0):
                     print('Label must be 1')
                     exit(4)
                 data = feature_select(data, features)
                 y_test = data['attack_cat']
-                x_test = data.drop('attack_cat', axis=1)
+                x_test = data[features]
 
         y_pred = mdl.predict(x_test, y_test)
         print('Predicted values: ' + np.array(y_pred))

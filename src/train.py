@@ -31,6 +31,16 @@ label_features = []
 
 
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
+    # Feature Selection Method:     SelectFromModel
+    # Chosen Classiifier:           RandomForestClassifier
+    #
+    # By default, uses the mean of the feature_importances_ values of a fit model to select features
+    # based on the training of the model.
+    #
+    # Used here to select the features, then test those features across KFolds with F1-macro scoring.
+    #
+    # If the mean F1-macro score passes the given threshold, train a final RFC with more estimators and save it.
+
     # Used for aggregated classification report in KFold
     global true_class
     global pred_class
@@ -60,7 +70,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # label_data_X = scaler.transform(label_data_X)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12)
             sel = SelectFromModel(est)
 
             sel = sel.fit(label_data_X, label_data_y)
@@ -77,7 +87,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # ~~~~~~~ Label Model Training ~~~~~~~ #
 
             # Define model for kfold using selected features
-            model = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
+            model = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12)
             kfold_means = train_score_model('Label', sel_label_data, model)
 
             # Print classification report of aggregated predictions.
@@ -89,7 +99,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
                 x = sel_label_data.drop('Label', axis=1)
 
                 # Fit final model.
-                model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+                model_fin = RandomForestClassifier(n_estimators=4000, verbose=2, n_jobs=12)
                 model_fin.fit(x, y)
                 # Pickle and save model as binary.
                 save_pkl('Label_RFC', model_fin)
@@ -150,10 +160,14 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
                 model_fin = RandomForestClassifier(n_estimators=4000, verbose=2, n_jobs=10,
                                                    class_weight='balanced_subsample')
                 model_fin.fit(x, y)
+
                 # Pickle and save model as binary.
                 save_pkl('attack_cat_RFC', model_fin)
 
-            print()
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
 
 
 def feature_sel_test_K(data: pd.DataFrame, target: str):
@@ -371,15 +385,17 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'J'
+    NAME = ''
 
     match NAME:
         case 'J':
-            feature_sel_test_J(base_data, 'attack_cat')
+            feature_sel_test_J(base_data, 'Label')
         case 'K':
             feature_sel_test_K(base_data, 'Label')
         case 'L':
             # feature_sel_test_L(base_data, 'Label') # seems to be working fine
             feature_sel_test_L(base_data, 'attack_cat')
+        case _:
+            pass
 
 
