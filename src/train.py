@@ -1,3 +1,4 @@
+import gzip
 import pickle
 from typing import Union
 
@@ -70,7 +71,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # label_data_X = scaler.transform(label_data_X)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12)
+            est = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=12)
             sel = SelectFromModel(est)
 
             sel = sel.fit(label_data_X, label_data_y)
@@ -87,7 +88,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # ~~~~~~~ Label Model Training ~~~~~~~ #
 
             # Define model for kfold using selected features
-            model = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12)
+            model = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=12)
             kfold_means = train_score_model('Label', sel_label_data, model)
 
             # Print classification report of aggregated predictions.
@@ -99,7 +100,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
                 x = sel_label_data.drop('Label', axis=1)
 
                 # Fit final model.
-                model_fin = RandomForestClassifier(n_estimators=4000, verbose=2, n_jobs=12)
+                model_fin = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=12)
                 model_fin.fit(x, y)
                 # Pickle and save model as binary.
                 save_pkl('Label_RFC', model_fin)
@@ -127,7 +128,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             ac_data_X = ac_data.drop('attack_cat', axis=1)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10, class_weight='balanced_subsample')
+            est = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=10, class_weight='balanced_subsample')
             sel = SelectFromModel(est)  # , threshold=-np.inf, max_features=60
 
             sel = sel.fit(ac_data_X, ac_data_y)
@@ -145,7 +146,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # ~~ Attack  Category  Model  Training ~~ #
 
             # Define model for kfold using selected features
-            model = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12, class_weight='balanced_subsample')
+            model = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=12, class_weight='balanced_subsample')
             kfold_means = train_score_model('attack_cat', sel_ac_data, model)
 
             # Print classification report of aggregated predictions.
@@ -157,7 +158,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
                 x = sel_ac_data.drop('attack_cat', axis=1)
 
                 # Fit final model.
-                model_fin = RandomForestClassifier(n_estimators=4000, verbose=2, n_jobs=10,
+                model_fin = RandomForestClassifier(n_estimators=200, verbose=2, n_jobs=10,
                                                    class_weight='balanced_subsample')
                 model_fin.fit(x, y)
 
@@ -372,8 +373,8 @@ def save_pkl(name: str, model: SKLClassifier):
     :param model:
     :return:
     """
-    with open('../models/' + name + '.pkl', 'wb') as mdl_pkl:
-        pickle.dump(model, mdl_pkl)
+    with gzip.open('../models/' + name + '.pkl', 'wb') as mdl_pkl:
+        pickle.dump(model, mdl_pkl, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -385,11 +386,11 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'J'
 
     match NAME:
         case 'J':
-            feature_sel_test_J(base_data, 'Label')
+            feature_sel_test_J(base_data, 'attack_cat')
         case 'K':
             feature_sel_test_K(base_data, 'Label')
         case 'L':

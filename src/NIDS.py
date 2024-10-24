@@ -1,3 +1,5 @@
+import gzip
+
 import argparse
 import numpy as np
 import pandas as pd
@@ -61,8 +63,10 @@ if __name__ == '__main__':
                     print('invalid task')
                     exit(3)
 
-        with open(mdl_url, 'rb') as mdl_pkl:
+        mdl = None
+        with gzip.open(mdl_url, 'rb') as mdl_pkl:
             mdl = pickle.load(mdl_pkl)
+
 
         x_test = None
         y_test = None
