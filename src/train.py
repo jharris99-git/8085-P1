@@ -1,9 +1,12 @@
 import pickle
+from ast import literal_eval
 from typing import Union
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import RFECV
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
@@ -11,11 +14,11 @@ from sklearn.svm import SVC
 
 from prep import process_data
 
-pd.set_option('display.max_rows', 100)
-pd.set_option('display.max_columns', 100)
+pd.set_option('display.max_rows', 300)
+pd.set_option('display.max_columns', 300)
 pd.set_option('display.width', 5000)
 
-SKLClassifier = Union[RandomForestClassifier, MLPClassifier, KNeighborsClassifier, SVC]
+SKLClassifier = Union[RandomForestClassifier, MLPClassifier, KNeighborsClassifier, SVC, LogisticRegression]
 
 ac_features = []
 label_features = []
@@ -29,8 +32,17 @@ def feature_sel_test_J(data: pd.DataFrame):
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
 
+    est = LogisticRegression()
+    sel = RFECV(est, step=1, cv=5)
 
+    print(label_data['ct_ftp_cmd'])
 
+    label_data_y = label_data['Label']
+    label_data_X = label_data.drop('Label', axis=1)
+
+    sel = sel.fit(label_data_X, label_data_y)
+
+    print(sel.ranking_)
 
     return data
 
@@ -110,11 +122,11 @@ def save_pkl(name: str, model: SKLClassifier):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
+base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv',
                         low_memory=False)
 
-base_data = process_data(base_data)
 
+base_data = process_data(base_data)
 
 NAME = 'J'
 
