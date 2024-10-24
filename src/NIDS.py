@@ -46,11 +46,11 @@ if __name__ == '__main__':
                                                                                    'ct_dst_sport_ltm', 'ct_dst_src_ltm',
                                                                                    'attack_cat', 'Label'])
 
-        # TO DO: Data preparation
+        # TODO: Data preparation
 
         data = prune(data)
 
-        # TO DO: Make dummies from categorical types for proto, service, and state.
+        # TODO: Make dummies from categorical types for proto, service, and state.
         # DO NOT use process_data. attack_cat and Label do not exist in input test data
 
         mdl_url = ''
