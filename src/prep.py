@@ -70,6 +70,10 @@ def process_data(data: pd.DataFrame):
     # Fix whitespace values in ct_ftp_cmd, to impute or prune later.
     data.ct_ftp_cmd = [None if x == " " else float(x) for x in base_data.ct_ftp_cmd.tolist()]
 
+    # Fix attack_category whitespace and plural errors
+    data.attack_cat = data.attack_cat.str.replace(" ", "")
+    data.attack_cat = data.attack_cat.str.replace("Backdoors", "Backdoor")
+
     data = prune(data)
     data = encode(data)
     data = impute(data)

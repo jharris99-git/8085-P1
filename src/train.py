@@ -29,7 +29,7 @@ ac_features = []
 label_features = []
 
 
-def feature_sel_test_J(data: pd.DataFrame):
+def feature_sel_test_J(data: pd.DataFrame, cat: str):
     # Used for aggregated classification report in KFold
     global true_class
     global pred_class
@@ -43,68 +43,115 @@ def feature_sel_test_J(data: pd.DataFrame):
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-    # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+    match cat:
+        case 'Label':
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-    # ~~~~~~~ Label Feature Selection ~~~~~~~ #
+            # ~~~~~~~ Label Feature Selection ~~~~~~~ #
 
-    label_data_y = label_data['Label']
-    label_data_X = label_data.drop('Label', axis=1)
+            label_data_y = label_data['Label']
+            label_data_X = label_data.drop('Label', axis=1)
 
-    # Scale data, not always necessary.
-    # scaler = StandardScaler().fit(label_data_X)
-    # label_data_X = scaler.transform(label_data_X)
+            # Scale data, not always necessary.
+            # scaler = StandardScaler().fit(label_data_X)
+            # label_data_X = scaler.transform(label_data_X)
 
-    # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-    est = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
-    sel = SelectFromModel(est)
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            est = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
+            sel = SelectFromModel(est)
 
-    sel = sel.fit(label_data_X, label_data_y)
+            sel = sel.fit(label_data_X, label_data_y)
 
-    # Get selected labels according to SelectFromModel and add them to the columns for use in the final model
-    sel_feat_ind_Label = np.where(sel.get_support())[0]
-    sel_feat_Label = label_data.columns[sel_feat_ind_Label]
+            # Get selected labels according to SelectFromModel and add them to the columns for use in the final model
+            sel_feat_ind_Label = np.where(sel.get_support())[0]
+            sel_feat_Label = label_data.columns[sel_feat_ind_Label]
 
-    print(sel_feat_Label)
+            print(sel_feat_Label)
 
-    sel_label_data_cols = sel_feat_Label.to_list() + ['Label']
-    sel_label_data = label_data[sel_label_data_cols]
+            sel_label_data_cols = sel_feat_Label.to_list() + ['Label']
+            sel_label_data = label_data[sel_label_data_cols]
 
-    # ~~~~~~~ Label Model Training ~~~~~~~ #
+            # ~~~~~~~ Label Model Training ~~~~~~~ #
 
-    # Define model for kfold using selected features
-    model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
-    kfold_means = train_score_model('Label', sel_label_data, model)
+            # Define model for kfold using selected features
+            model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
+            kfold_means = train_score_model('Label', sel_label_data, model)
 
-    # Print classification report of aggregated predictions.
-    print(classification_report(y_true=true_class, y_pred=pred_class))
+            # Print classification report of aggregated predictions.
+            print(classification_report(y_true=true_class, y_pred=pred_class))
 
-    # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    if kfold_means > 0.95:
-        y = sel_label_data['Label']
-        x = sel_label_data.drop('Label', axis=1)
+            # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
+            if kfold_means > 0.95:
+                y = sel_label_data['Label']
+                x = sel_label_data.drop('Label', axis=1)
 
-        # Fit final model.
-        model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
-        model_fin.fit(x, y)
-        # Pickle and save model as binary.
-        save_pkl('Label_RFC', model_fin)
+                # Fit final model.
+                model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+                model_fin.fit(x, y)
+                # Pickle and save model as binary.
+                save_pkl('Label_RFC', model_fin)
 
-    # Clear aggregated values.
+            # Clear aggregated values.
 
-    true_class = []
-    pred_class = []
+            true_class = []
+            pred_class = []
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-    # ~~~~~~~~~~~ Attack Category ~~~~~~~~~~~ #
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+        case 'attack_cat':
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~ Attack Category ~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-    # ~~ Attack Category Feature Selection ~~ #
+            # ~~ Attack Category Feature Selection ~~ #
 
-    # ~~~ Attack Category  Model Training ~~~ #
+            # Factorize Attack Category
+            factor = pd.factorize(ac_data['attack_cat'])
+            ac_data.attack_cat = factor[0]
+            definitions = factor[1]
+            print(ac_data.attack_cat.head())
+            print(definitions)
 
-    return sel_feat_Label
+            ac_data_y = ac_data['attack_cat']
+            ac_data_X = ac_data.drop('attack_cat', axis=1)
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+            sel = SelectFromModel(est, threshold=-np.inf, max_features=60)
+
+            sel = sel.fit(ac_data_X, ac_data_y)
+
+            # Get selected Attack Categories according to SelectFromModel /
+            # and add them to the columnsfor use in the final model
+            sel_feat_ind_ac = np.where(sel.get_support())[0]
+            sel_feat_ac = ac_data.columns[sel_feat_ind_ac]
+
+            print(sel_feat_ac)
+
+            sel_ac_data_cols = sel_feat_ac.to_list() + ['attack_cat']
+            sel_ac_data = ac_data[sel_ac_data_cols]
+
+            # ~~ Attack  Category  Model  Training ~~ #
+
+            # Define model for kfold using selected features
+            model = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12)
+            kfold_means = train_score_model('attack_cat', sel_ac_data, model)
+
+            # Print classification report of aggregated predictions.
+            print(classification_report(y_true=true_class, y_pred=pred_class))
+
+            # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
+            if kfold_means > 0.95:
+                y = sel_ac_data['attack_cat']
+                x = sel_ac_data.drop('attack_cat', axis=1)
+
+                # Fit final model.
+                model_fin = RandomForestClassifier(n_estimators=3000, verbose=2, n_jobs=10)
+                model_fin.fit(x, y)
+                # Pickle and save model as binary.
+                save_pkl('attack_cat_RFC', model_fin)
+
+            print()
 
 
 def feature_sel_test_K(data: pd.DataFrame, target: str):
@@ -281,7 +328,7 @@ def initial_prep_label(data: pd.DataFrame):
 def aggregating_f1_scorer(y_true, y_pred):
     true_class.extend(y_true)
     pred_class.extend(y_pred)
-    return f1_score(y_true, y_pred)
+    return f1_score(y_true, y_pred, average='macro')
 
 
 def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier) -> (str, SKLClassifier):
@@ -316,21 +363,21 @@ def save_pkl(name: str, model: SKLClassifier):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN-HALVED.csv',
-                        skipinitialspace=True,
+base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv',
                         low_memory=False)
+
 
 base_data = process_data(base_data)
 
-print(base_data)
-
-NAME = 'K'
+NAME = 'J'
 
 match NAME:
     case 'J':
-        feature_sel_test_J(base_data)
+        feature_sel_test_J(base_data, 'attack_cat')
     case 'K':
         feature_sel_test_K(base_data, 'Label')
     case 'L':
         # feature_sel_test_L(base_data, 'Label') # seems to be working fine
         feature_sel_test_L(base_data, 'attack_cat')
+
+
