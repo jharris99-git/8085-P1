@@ -41,7 +41,7 @@ def feature_sel_test_J(data: pd.DataFrame):
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
 
-    # ~~~~~~~ Label ~~~~~~~ #
+    # ~~~~~~~ Label Feature Selection ~~~~~~~ #
     label_data_y = label_data['Label']
     label_data_X = label_data.drop('Label', axis=1)
 
@@ -64,9 +64,13 @@ def feature_sel_test_J(data: pd.DataFrame):
     sel_label_data_cols = sel_feat_Label.to_list() + ['Label']
     sel_label_data = label_data[sel_label_data_cols]
 
+    # ~~~~~~~ Label Model Training ~~~~~~~ #
     # Define model for kfold using selected features
     model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
     kfold_means = train_score_model('Label', sel_label_data, model)
+
+    # Print classification report of aggregated predictions.
+    print(classification_report(y_true=true_class, y_pred=pred_class))
 
     # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
     if kfold_means > 0.95:
@@ -78,9 +82,6 @@ def feature_sel_test_J(data: pd.DataFrame):
         model_fin.fit(x, y)
         # Pickle and save model as binary.
         save_pkl('Label_RFC', model_fin)
-
-    # Print classification report of aggregated predictions.
-    print(classification_report(y_true=true_class, y_pred=pred_class))
 
     # Clear aggregated values.
 
