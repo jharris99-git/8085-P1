@@ -28,6 +28,8 @@ def feature_sel_test_J(data: pd.DataFrame):
     label_data = pd.DataFrame(data)
     label_data = label_data.drop('attack_cat', axis=1)
 
+    print(label_data)
+
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
@@ -127,6 +129,8 @@ base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv',
 
 
 base_data = process_data(base_data)
+
+print(base_data)
 
 NAME = 'J'
 
