@@ -11,6 +11,8 @@ from sklearn.model_selection import KFold, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
+from sklearn.feature_selection import chi2
+from sklearn.preprocessing import LabelEncoder
 
 from prep import process_data
 
@@ -109,8 +111,39 @@ def feature_sel_test_K(data: pd.DataFrame):
     return data
 
 
-def feature_sel_test_L(data: pd.DataFrame):
-    return data
+def feature_sel_test_L(data: pd.DataFrame, target: str):
+    # Drop the other target column (whichever is not selected)
+    if target == 'attack_cat':
+        ac_data = pd.DataFrame(data)
+        ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
+        ac_data = ac_data.drop(ac_data[ac_data['attack_cat'] == 0].index, axis=0)
+        final_data = ac_data.drop('Label', axis=1)
+    else:
+        label_data = pd.DataFrame(data)
+        final_data = label_data.drop('attack_cat', axis=1)
+
+    # Separate the features (x) and the selected target (y)
+    x = final_data  # Features (excluding the target labels)
+    y = final_data[target]  # Target variable (either 'attack_cat' or 'Label')
+
+    # Convert categorical features to numerical using LabelEncoder
+    label_encoder = LabelEncoder()
+    for column in x.select_dtypes(include=['object', 'category']).columns:
+        x[column] = label_encoder.fit_transform(x[column])
+
+    # Apply the chi-square test
+    chi2_scores, p_values = chi2(x, y)
+
+    # Create a DataFrame with the results
+    chi2_results = pd.DataFrame({'Feature': x.columns, 'Chi2 Score': chi2_scores, 'p-value': p_values})
+
+    # Sort by p-value for analysis
+    chi2_results = chi2_results.sort_values(by='p-value')
+
+    print(f"Chi-Square Test Results ({target}):")
+    print(f"{chi2_results}\n")
+
+    return chi2_results
 
 
 def feature_select(data: pd.DataFrame, features: list):
@@ -200,6 +233,7 @@ match NAME:
     case 'K':
         feature_sel_test_K(base_data)
     case 'L':
-        feature_sel_test_L(base_data)
+        # feature_sel_test_L(base_data, 'Label') # seems to be working fine
+        feature_sel_test_L(base_data, 'attack_cat')
 
 
