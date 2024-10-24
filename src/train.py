@@ -42,13 +42,13 @@ def feature_sel_test_J(data: pd.DataFrame):
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
-    
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
     # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
     # ~~~~~~~ Label Feature Selection ~~~~~~~ #
-    
+
     label_data_y = label_data['Label']
     label_data_X = label_data.drop('Label', axis=1)
 
@@ -107,8 +107,105 @@ def feature_sel_test_J(data: pd.DataFrame):
     return sel_feat_Label
 
 
-def feature_sel_test_K(data: pd.DataFrame):
-    return data
+def feature_sel_test_K(data: pd.DataFrame, target: str):
+    # Principal Component Analysis (PCA)
+    # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
+    # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
+    # checking shape
+    global true_class
+    global pred_class
+
+    trainData = data.drop(['Label', 'attack_cat'], axis=1)
+    data = pd.get_dummies(data, columns=['attack_cat'])
+    # Input features
+    X = trainData[trainData.columns[:-1]]
+    # Mean
+    X_mean = X.mean()
+    # Standard deviation
+    X_std = X.std()
+
+    # Standardization
+    Z = (X - X_mean) / X_std
+    # covariance
+    c = Z.cov()
+
+    # Plot the covariance matrix
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    plt.figure(figsize=(50, 50))
+    sns.heatmap(c, cmap="PiYG")
+    # plt.show()
+
+    eigenvalues, eigenvectors = np.linalg.eig(c)
+    # Index the eigenvalues in descending order
+    idx = eigenvalues.argsort()[::-1]
+    # Sort the eigenvalues in descending order
+    eigenvalues = eigenvalues[idx]
+    # sort the corresponding eigenvectors accordingly
+    eigenvectors = eigenvectors[:, idx]
+    explained_var = np.cumsum(eigenvalues) / np.sum(eigenvalues)
+    n_components = np.argmax(explained_var >= 0.50) + 1
+
+    # PCA component or unit matrix
+    u = eigenvectors[:, :n_components]
+    pca_component = pd.DataFrame(u, index=trainData.columns[:-1])
+
+    # plotting heatmap
+    plt.figure(figsize=(20, 50))
+    sns.heatmap(pca_component, cmap="PiYG")
+    plt.title('PCA Component')
+    # plt.show()
+
+    # Matrix multiplication or dot Product
+    Z_pca = Z @ pca_component
+
+    # Importing PCA
+    from sklearn.decomposition import PCA
+    # Let's say, components = 2
+    pca = PCA(n_components=n_components)
+    pca.fit(Z)
+    x_pca = pca.transform(Z)
+
+    # Create the dataframe
+    df_pca1 = pd.DataFrame(x_pca,
+                           columns=['PC{}'.format(i + 1) for i in range(n_components)])
+    # print(df_pca1)
+
+    # giving a larger plot
+    plt.figure(figsize=(8, 6))
+    plt.plot(pca.explained_variance_ratio_)
+    plt.show()
+    plt.scatter(x_pca[:, 0], x_pca[:, 44],
+                c=data['Label'],
+                cmap='plasma')
+    # labeling x and y axes
+    plt.xlabel(str(0) + ' Principal Component')
+    plt.ylabel(str(44) + ' Principal Component')
+    # plt.show()
+
+    sel_label_data = df_pca1
+    sel_label_data['Label'] = data['Label']
+
+    # Define model for kfold using selected features
+    model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
+    kfold_means = train_score_model('Label', sel_label_data, model)
+
+    # Print classification report of aggregated predictions.
+    print(classification_report(y_true=true_class, y_pred=pred_class))
+
+    if kfold_means > 0.95:
+        y = sel_label_data['Label']
+        x = sel_label_data.drop('Label', axis=1)
+
+        # Fit final model.
+        model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+        model_fin.fit(x, y)
+        # Pickle and save model as binary.
+        save_pkl('Label_PCA', model_fin)
+
+    true_class = []
+    pred_class = []
+    return df_pca1
 
 
 def feature_sel_test_L(data: pd.DataFrame, target: str):
@@ -219,21 +316,21 @@ def save_pkl(name: str, model: SKLClassifier):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv',
+base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN-HALVED.csv',
+                        skipinitialspace=True,
                         low_memory=False)
-
 
 base_data = process_data(base_data)
 
-NAME = 'J'
+print(base_data)
+
+NAME = 'K'
 
 match NAME:
     case 'J':
         feature_sel_test_J(base_data)
     case 'K':
-        feature_sel_test_K(base_data)
+        feature_sel_test_K(base_data, 'Label')
     case 'L':
         # feature_sel_test_L(base_data, 'Label') # seems to be working fine
         feature_sel_test_L(base_data, 'attack_cat')
-
-

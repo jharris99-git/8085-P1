@@ -88,7 +88,7 @@ expected_dtypes = {'srcip': 'str',
                    }
 
 # Import base CSV data from file.
-base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
+base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN-HALVED.csv', dtype=expected_dtypes,
                         low_memory=False)
 
 
