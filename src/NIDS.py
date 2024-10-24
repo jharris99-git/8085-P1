@@ -2,7 +2,11 @@ import argparse
 import numpy as np
 import pandas as pd
 import pickle
-from train import feature_select
+
+from sklearn.metrics import classification_report
+
+from prep import process_data
+from train import feature_select, feature_sel_test_K
 
 features = []
 
@@ -21,8 +25,9 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
-        data = pd.read_csv('../test_data/' + args.testset, low_memory=False)
-
+        # data = pd.read_csv('../test_data/' + args.testset, low_memory=False)
+        data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN-OtherHALVED.csv', low_memory=False)
+        data = process_data(data)
         mdl_url = ''
 
         if args.model:
@@ -34,8 +39,8 @@ if __name__ == '__main__':
                         case 'Label_RFC':
                             mdl_url = '../models/Label_RFC.pkl'
                             features = []
-                        case 'label_m2':
-                            mdl_url = '../models/label_m2.pkl'
+                        case 'Label_PCA':
+                            mdl_url = '../models/label_PCA.pkl'
                             features = []
                         case 'label_m3':
                             mdl_url = '../models/label_m3.pkl'
@@ -48,8 +53,10 @@ if __name__ == '__main__':
                         case 'ac_m1':
                             mdl_url = '../models/ac_m1.pkl'
                             features = []
-                        case 'ac_m2':
-                            mdl_url = '../models/ac_m2.pkl'
+                        case 'attack_cat_PCA':
+                            mdl_url = '../models/attack_cat_PCA.pkl'
+                            factor = pd.factorize(data['attack_cat'])
+                            data.attack_cat = factor[0]
                             features = []
                         case 'ac_m3':
                             mdl_url = '../models/ac_m3.pkl'
@@ -66,21 +73,22 @@ if __name__ == '__main__':
 
         x_test = None
         y_test = None
-        match args.task:
-            case 'Label':
-                data = feature_select(data, features)
-                y_test = data['Label']
-                x_test = data.drop('Label', axis=1)
-            case 'attack_cat':
-                if np.array(data.Label)[0] == 0:
-                    print('Label must be 1')
-                    exit(4)
-                data = feature_select(data, features)
-                y_test = data['attack_cat']
-                x_test = data.drop('attack_cat', axis=1)
+        # match args.task:
+        #     case 'Label':
+        #         data = feature_select(data, features)
+        #         y_test = data['Label']
+        #         x_test = data.drop('Label', axis=1)
+        #     case 'attack_cat':
+        #         if np.array(data.Label)[0] == 0:
+        #             print('Label must be 1')
+        #             exit(4)
+        #         data = feature_select(data, features)
+        #         y_test = data['attack_cat']
+        #         x_test = data.drop('attack_cat', axis=1)
 
-        y_pred = mdl.predict(x_test, y_test)
-        print('Predicted values: ' + np.array(y_pred))
+        y_pred = mdl.predict(feature_sel_test_K(data, 'attack_cat'))
+        print(np.array(y_pred))
+        print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
 
     except pd.errors as e:  # Hopefully works
         print('invalid test data')
