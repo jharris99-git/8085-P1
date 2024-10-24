@@ -176,100 +176,60 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
     # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
     # checking shape
-    global true_class
-    global pred_class
+    train_data_x = None
+    train_data_y = None
+    match target:
+        case 'Label':
+            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
+            label_data = pd.DataFrame(data)
+            label_data = label_data.drop('attack_cat', axis=1)
 
-    trainData = data.drop(['Label', 'attack_cat'], axis=1)
-    data = pd.get_dummies(data, columns=['attack_cat'])
-    # Input features
-    X = trainData[trainData.columns[:-1]]
-    # Mean
-    X_mean = X.mean()
-    # Standard deviation
-    X_std = X.std()
-
-    # Standardization
-    Z = (X - X_mean) / X_std
-    # covariance
-    c = Z.cov()
-
-    # Plot the covariance matrix
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    plt.figure(figsize=(50, 50))
-    sns.heatmap(c, cmap="PiYG")
-    # plt.show()
-
-    eigenvalues, eigenvectors = np.linalg.eig(c)
-    # Index the eigenvalues in descending order
-    idx = eigenvalues.argsort()[::-1]
-    # Sort the eigenvalues in descending order
-    eigenvalues = eigenvalues[idx]
-    # sort the corresponding eigenvectors accordingly
-    eigenvectors = eigenvectors[:, idx]
-    explained_var = np.cumsum(eigenvalues) / np.sum(eigenvalues)
-    n_components = np.argmax(explained_var >= 0.50) + 1
-
-    # PCA component or unit matrix
-    u = eigenvectors[:, :n_components]
-    pca_component = pd.DataFrame(u, index=trainData.columns[:-1])
-
-    # plotting heatmap
-    plt.figure(figsize=(20, 50))
-    sns.heatmap(pca_component, cmap="PiYG")
-    plt.title('PCA Component')
-    # plt.show()
-
-    # Matrix multiplication or dot Product
-    Z_pca = Z @ pca_component
+            train_data_x = label_data.drop('Label', axis=1)
+            train_data_y = label_data['Label']
+        case 'attack_cat':
+            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
+            ack_data = pd.DataFrame(data)
+            ack_data = ack_data.drop('Label', axis=1)
+            train_data_x = ack_data.drop('attack_cat', axis=1)
+            factor = pd.factorize(ack_data['attack_cat'])
+            ack_data.attack_cat = factor[0]
+            train_data_y = ack_data['attack_cat']
 
     # Importing PCA
     from sklearn.decomposition import PCA
-    # Let's say, components = 2
-    pca = PCA(n_components=n_components)
-    pca.fit(Z)
-    x_pca = pca.transform(Z)
+    # Let's say, components = 15
+    pca = PCA(n_components=15)
+    pca.fit(train_data_x)
+    x_pca = pca.transform(train_data_x)
 
-    # Create the dataframe
-    df_pca1 = pd.DataFrame(x_pca,
-                           columns=['PC{}'.format(i + 1) for i in range(n_components)])
-    # print(df_pca1)
+    global true_class
+    global pred_class
 
-    # giving a larger plot
-    plt.figure(figsize=(8, 6))
-    plt.plot(pca.explained_variance_ratio_)
-    plt.show()
-    plt.scatter(x_pca[:, 0], x_pca[:, 44],
-                c=data['Label'],
-                cmap='plasma')
-    # labeling x and y axes
-    plt.xlabel(str(0) + ' Principal Component')
-    plt.ylabel(str(44) + ' Principal Component')
-    # plt.show()
-
-    sel_label_data = df_pca1
-    sel_label_data['Label'] = data['Label']
+    train_data = pd.DataFrame(x_pca)
+    train_data[target] = train_data_y
 
     # Define model for kfold using selected features
-    model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
-    kfold_means = train_score_model('Label', sel_label_data, model)
+    model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=12, class_weight='balanced_subsample')
+    kfold_means = train_score_model(target, train_data, model)
 
     # Print classification report of aggregated predictions.
     print(classification_report(y_true=true_class, y_pred=pred_class))
 
-    if kfold_means > 0.95:
-        y = sel_label_data['Label']
-        x = sel_label_data.drop('Label', axis=1)
+    # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
+    if kfold_means > 0.5:
+        y = train_data[target]
+        x = train_data.drop(target, axis=1)
 
         # Fit final model.
-        model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+        model_fin = RandomForestClassifier(n_estimators=400, verbose=2, n_jobs=10,
+                                           class_weight='balanced_subsample')
         model_fin.fit(x, y)
         # Pickle and save model as binary.
-        save_pkl('Label_PCA', model_fin)
+        save_pkl(target + '_PCA', model_fin)
 
     true_class = []
     pred_class = []
-    return df_pca1
+    return x_pca
 
 
 def feature_sel_test_L(data: pd.DataFrame, target: str):
@@ -386,13 +346,14 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'J'
+    NAME = 'K'
 
     match NAME:
         case 'J':
             feature_sel_test_J(base_data, 'attack_cat')
         case 'K':
-            feature_sel_test_K(base_data, 'Label')
+            # feature_sel_test_K(base_data, 'Label')
+            feature_sel_test_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label') # seems to be working fine
             feature_sel_test_L(base_data, 'attack_cat')

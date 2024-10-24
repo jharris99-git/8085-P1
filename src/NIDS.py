@@ -4,7 +4,11 @@ import argparse
 import numpy as np
 import pandas as pd
 import pickle
-from train import feature_select
+
+from sklearn.metrics import classification_report
+
+from prep import process_data
+from train import feature_select, feature_sel_test_K
 
 features = []
 
@@ -47,11 +51,13 @@ if __name__ == '__main__':
                             exit(2)
                 case 'attack_cat':
                     match args.classifier:
-                        case 'ac_m1':
+                        case 'attack_cat_RFC':
                             mdl_url = '../models/attack_cat_RFC.pkl'
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len', 'Sjit', 'Djit', 'Stime', 'Ltime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_flw_http_mthd', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'proto_ttp', 'state_URN', 'service_dhcp', 'service_ftp-data']
-                        case 'ac_m2':
-                            mdl_url = '../models/ac_m2.pkl'
+                        case 'attack_cat_PCA':
+                            mdl_url = '../models/attack_cat_PCA.pkl'
+                            factor = pd.factorize(data['attack_cat'])
+                            data.attack_cat = factor[0]
                             features = []
                         case 'ac_m3':
                             mdl_url = '../models/ac_m3.pkl'
@@ -84,6 +90,7 @@ if __name__ == '__main__':
 
         y_pred = mdl.predict(x_test, y_test)
         print('Predicted values: ' + np.array(y_pred))
+        print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
 
     except pd.errors as e:  # Hopefully works
         print('invalid test data')
