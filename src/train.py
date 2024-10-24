@@ -9,6 +9,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 
+from prep import process_data
+
 pd.set_option('display.max_rows', 100)
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.width', 5000)
@@ -17,6 +19,18 @@ SKLClassifier = Union[RandomForestClassifier, MLPClassifier, KNeighborsClassifie
 
 ac_features = []
 label_features = []
+
+
+def feature_sel_test_J(data: pd.DataFrame):
+    return data
+
+
+def feature_sel_test_K(data: pd.DataFrame):
+    return data
+
+
+def feature_sel_test_L(data: pd.DataFrame):
+    return data
 
 
 def feature_select(data: pd.DataFrame, features: list):
@@ -82,3 +96,22 @@ def save_pkl(name: str, model: SKLClassifier):
     with open('../models/' + name + '.pkl', 'wb') as mdl_pkl:
         pickle.dump(model, mdl_pkl)
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+
+base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
+                        low_memory=False)
+
+base_data = process_data(base_data)
+
+
+NAME = 'J'
+
+match NAME:
+    case 'J':
+        feature_sel_test_J(base_data)
+    case 'K':
+        feature_sel_test_K(base_data)
+    case 'L':
+        feature_sel_test_L(base_data)
