@@ -60,7 +60,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # label_data_X = scaler.transform(label_data_X)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
+            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
             sel = SelectFromModel(est)
 
             sel = sel.fit(label_data_X, label_data_y)
@@ -77,7 +77,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # ~~~~~~~ Label Model Training ~~~~~~~ #
 
             # Define model for kfold using selected features
-            model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=10)
+            model = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
             kfold_means = train_score_model('Label', sel_label_data, model)
 
             # Print classification report of aggregated predictions.
@@ -117,7 +117,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             ac_data_X = ac_data.drop('attack_cat', axis=1)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=10)
+            est = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10, class_weight='balanced_subsample')
             sel = SelectFromModel(est)  # , threshold=-np.inf, max_features=60
 
             sel = sel.fit(ac_data_X, ac_data_y)
@@ -135,19 +135,20 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             # ~~ Attack  Category  Model  Training ~~ #
 
             # Define model for kfold using selected features
-            model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=12)
+            model = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=12, class_weight='balanced_subsample')
             kfold_means = train_score_model('attack_cat', sel_ac_data, model)
 
             # Print classification report of aggregated predictions.
             print(classification_report(y_true=true_class, y_pred=pred_class))
 
             # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-            if kfold_means > 0.95:
+            if kfold_means > 0.5:
                 y = sel_ac_data['attack_cat']
                 x = sel_ac_data.drop('attack_cat', axis=1)
 
                 # Fit final model.
-                model_fin = RandomForestClassifier(n_estimators=2000, verbose=2, n_jobs=10)
+                model_fin = RandomForestClassifier(n_estimators=4000, verbose=2, n_jobs=10,
+                                                   class_weight='balanced_subsample')
                 model_fin.fit(x, y)
                 # Pickle and save model as binary.
                 save_pkl('attack_cat_RFC', model_fin)
