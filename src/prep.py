@@ -32,7 +32,7 @@ def prune(data: pd.DataFrame):
     # data = data[data.isnull().sum(axis=1) < 4]
 
     # Drop IP columns from the dataset
-    data = data.drop(['srcip', 'dstip'], axis=1)
+    data = data.drop(['srcip', 'dstip', 'sport', 'dsport'], axis=1)
 
     return data
 
