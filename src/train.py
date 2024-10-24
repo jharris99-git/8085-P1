@@ -161,6 +161,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
     # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
     # checking shape
+    # print(data)
     train_data_x = None
     train_data_y = None
     match target:
@@ -180,40 +181,48 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
             ack_data.attack_cat = factor[0]
             train_data_y = ack_data['attack_cat']
 
+    # Mean
+    X_mean = train_data_x.mean()
+
+    # Standard deviation
+    X_std = train_data_x.std()
+
+    # Standardization
+    Z = (train_data_x - X_mean) / X_std
     # Importing PCA
     from sklearn.decomposition import PCA
     # Let's say, components = 15
-    pca = PCA(n_components=15)
-    pca.fit(train_data_x)
-    x_pca = pca.transform(train_data_x)
+    pca = PCA(n_components=50)
+    pca.fit(Z)
+    x_pca = pca.transform(Z)
 
-    global true_class
-    global pred_class
-
-    train_data = pd.DataFrame(x_pca)
-    train_data[target] = train_data_y
-
-    # Define model for kfold using selected features
-    model = RandomForestClassifier(n_estimators=300, verbose=2, n_jobs=12, class_weight='balanced_subsample')
-    kfold_means = train_score_model(target, train_data, model)
-
-    # Print classification report of aggregated predictions.
-    print(classification_report(y_true=true_class, y_pred=pred_class))
-
-    # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    if kfold_means > 0.5:
-        y = train_data[target]
-        x = train_data.drop(target, axis=1)
-
-        # Fit final model.
-        model_fin = RandomForestClassifier(n_estimators=400, verbose=2, n_jobs=10,
-                                           class_weight='balanced_subsample')
-        model_fin.fit(x, y)
-        # Pickle and save model as binary.
-        save_pkl(target + '_PCA', model_fin)
-
-    true_class = []
-    pred_class = []
+    # Uncomment to generate models
+    # global true_class
+    # global pred_class
+    #
+    # train_data = pd.DataFrame(x_pca)
+    # train_data[target] = train_data_y
+    #
+    # # Define model for kfold using selected features
+    # model = MLPClassifier(alpha=0.001, max_iter=300, random_state=37, verbose=1)
+    # kfold_means = train_score_model(target, train_data, model)
+    #
+    # # Print classification report of aggregated predictions.
+    # print(classification_report(y_true=true_class, y_pred=pred_class))
+    #
+    # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
+    # if kfold_means > 0.45:
+    #     y = train_data[target]
+    #     x = train_data.drop(target, axis=1)
+    #
+    #     # Fit final model.
+    #     model_fin = MLPClassifier(alpha=0.0001, max_iter=400, random_state=32, verbose=1)
+    #     model_fin.fit(x, y)
+    #     # Pickle and save model as binary.
+    #     save_pkl(target + '_PCA', model_fin)
+    #
+    # true_class = []
+    # pred_class = []
     return x_pca
 
 

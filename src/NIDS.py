@@ -26,7 +26,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     try:
         # data = pd.read_csv('../test_data/' + args.testset, low_memory=False)
-        data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN-OtherHALVED.csv', low_memory=False)
+        data = pd.read_csv('../test_data/UNSW-NB15-BALANCED-TRAIN-HALVED.csv', low_memory=False)
         data = process_data(data)
         mdl_url = ''
 
@@ -86,9 +86,9 @@ if __name__ == '__main__':
         #         y_test = data['attack_cat']
         #         x_test = data.drop('attack_cat', axis=1)
 
-        y_pred = mdl.predict(feature_sel_test_K(data, 'attack_cat'))
+        y_pred = mdl.predict(feature_sel_test_K(data, args.task))
         print(np.array(y_pred))
-        print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
+        print(classification_report(y_true=data[args.task], y_pred=y_pred))
 
     except pd.errors as e:  # Hopefully works
         print('invalid test data')
