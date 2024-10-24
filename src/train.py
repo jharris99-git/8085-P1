@@ -22,6 +22,16 @@ label_features = []
 
 
 def feature_sel_test_J(data: pd.DataFrame):
+    label_data = pd.DataFrame(data)
+    label_data = label_data.drop('attack_cat', axis=1)
+
+    ac_data = pd.DataFrame(data)
+    ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
+    ac_data = ac_data.drop('Label', axis=1)
+
+
+
+
     return data
 
 
