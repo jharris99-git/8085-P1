@@ -44,7 +44,6 @@ def encode(data: pd.DataFrame):
     :return: pd.DataFrame, with encoded columns
     """
     data = pd.get_dummies(data, columns=['proto', 'state', 'service'])
-    print(data)
     return data
 
 
