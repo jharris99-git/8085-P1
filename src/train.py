@@ -278,14 +278,12 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Output results
             print(f'Chi-Square Test Results ({target}):')
-            # print(f'{chi2_results.sort_values(by=['p-value', 'Chi2 Score'], ascending=[True, False])}')
             print(f'{chi2_results}')
             print(f'============================================================================')
             print(f"Top {len(sel_chi2_results)} features selected with 0 p-value & sorted by highest chi2 scores:")
             print(sel_chi2_results)
 
             # Get selected feature names
-            # selected_features = chi2_results_sorted.head(feat_sel_size)['Feature'].values
             selected_features = sel_chi2_results['Feature'].values
             sel_label_data_cols = selected_features.tolist() + ['Label']
             sel_label_data = label_data[sel_label_data_cols]
@@ -307,15 +305,15 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             print(classification_report(y_true=true_class, y_pred=pred_class))
 
             # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-            if kfold_means > 0.95:
-                final_y = sel_label_data_scaled_df[target]
-                final_x = sel_label_data_scaled_df.drop(target, axis=1)
-
-                # Fit final model.
-                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-                model_fin.fit(final_x, final_y)
-                # Pickle and save model as binary.
-                save_pkl('Label_CHI', model_fin)
+            # if kfold_means > 0.95:
+            #     final_y = sel_label_data_scaled_df[target]
+            #     final_x = sel_label_data_scaled_df.drop(target, axis=1)
+            #
+            #     # Fit final model.
+            #     model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+            #     model_fin.fit(final_x, final_y)
+            #     # Pickle and save model as binary.
+            #     save_pkl('Label_CHI', model_fin)
 
             # Clear aggregated values.
             true_class = []
@@ -330,64 +328,50 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Factorize Attack Category
             factor = pd.factorize(ac_data['attack_cat'])
-            ac_data.attack_cat = factor[0]
+            ac_data.attack_cat = factor[0].astype(int)
             definitions = factor[1]
             print(ac_data.attack_cat.head())
             print(definitions)
 
             # Separate features and target
             y = ac_data[target]
-            X = ac_data.drop(target, axis=1)
-
-            scaler = StandardScaler().fit_transform(X)
-            X = scaler.transform(X)
+            x = ac_data.drop(target, axis=1)
 
             # Convert categorical features to numerical using LabelEncoder
             label_encoder = LabelEncoder()
-            for column in X.select_dtypes(include=['object', 'category']).columns:
-                X[column] = label_encoder.fit_transform(X[column])
+            for column in x.select_dtypes(include=['object', 'category']).columns:
+                x[column] = label_encoder.fit_transform(x[column])
 
             # Remove constant columns (those with zero variance)
-            X = X.loc[:, (X != X.iloc[0]).any()]
-
-            # Apply Chi-Square Test and select top k features
-            feat_sel_size = 10  # Number of top features to select
-            chi2_selector = SelectKBest(chi2, k=feat_sel_size)
-            X_selected = chi2_selector.fit_transform(X, y)
-            selected_features = X.columns[chi2_selector.get_support()]
-
-            # Extract Chi-Square scores and p-values
-            chi2_scores = chi2_selector.scores_
-            p_values = chi2_selector.pvalues_
-
-            # Create a DataFrame with the results
-            chi2_results = pd.DataFrame({
-                'Feature': X.columns,
-                'Chi2 Score': chi2_scores,
-                'p-value': p_values
-            })
-
-            # Sort by p-value
-            # chi2_results_sorted = chi2_results.sort_values(by=['p-value', 'Chi2 Score'], ascending=[True, False])
-            chi2_results_sorted = chi2_results.sort_values(by='p-value')
-
-            # Print the sorted features
-            print(f"Top {feat_sel_size} features of {target} sorted by p-value:")
-            print(chi2_results_sorted.head(feat_sel_size))
+            x = x.loc[:, (x != x.iloc[0]).any()]
 
             # Apply the chi-square test
-            chi2_scores, p_values = chi2(X, y)
+            chi2_scores, p_values = chi2(x, y)
             # Create a DataFrame with the results
-            chi2_results = pd.DataFrame({'Feature': X.columns, 'Chi2 Score': chi2_scores, 'p-value': p_values})
-            # Sort by p-value for analysis
-            chi2_results = chi2_results.sort_values(by=['p-value', 'Chi2 Score'], ascending=[True, False])
-            print(f"Whole Chi-Square Test Results ({target}):")
-            print(f"{chi2_results}\n")
+            chi2_results = pd.DataFrame({'Feature': x.columns, 'Chi2 Score': chi2_scores, 'p-value': p_values})
+            # Filter results with p-value = 0 & highest chi2 Score
+            # sel_chi2_results = chi2_results[chi2_results['p-value'] == 0]
+            # sel_chi2_results = sel_chi2_results.sort_values(by='Chi2 Score', ascending=False)
+            sel_chi2_results = chi2_results.head(10)
+            # sel_chi2_results = sel_chi2_results.head(10)
+
+            # Output results
+            print(f'Chi-Square Test Results ({target}):')
+            print(f'{chi2_results}')
+            print(f'============================================================================')
+            print(f"Top {len(sel_chi2_results)} features selected with 0 p-value & sorted by highest chi2 scores:")
+            print(sel_chi2_results)
 
             # Get selected feature names
-            selected_features = chi2_results_sorted.head(feat_sel_size)['Feature'].values
-            sel_label_data_cols = selected_features.tolist() + ['attack_cat']
-            sel_ac_data = ac_data[sel_label_data_cols]
+            selected_features = sel_chi2_results['Feature'].values
+            sel_ac_data_cols = selected_features.tolist() + [target]
+            sel_ac_data = ac_data[sel_ac_data_cols]
+
+            # Check for multicollinearity and remove highly correlated features
+            # corr_matrix = sel_ac_data.corr().abs()
+            # upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+            # to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
+            # sel_ac_data = sel_ac_data.drop(columns=to_drop)
 
             # ~~ Attack Category Model Training ~~ #
 
@@ -400,27 +384,30 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             scaler = StandardScaler()
             X_train_scaled = scaler.fit_transform(X_train)
             X_test_scaled = scaler.transform(X_test)
-            # scaled = scaler.fit_transform(sel_ac_data)
+            scaled = scaler.fit_transform(sel_ac_data)
 
             # Convert scaled arrays back to DataFrames
             X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
             X_train_scaled_df['attack_cat'] = y_train.values  # Add the target back to the DataFrame
-            # sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns)
-            # sel_ac_data_scaled_df['attack_cat']
+            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns)
 
+            # Ensure the target variable is integer type
+            sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            # model.fit(X_train_scaled_df, y_train)
+            # model = LogisticRegression(max_iter=1500, n_jobs=-1)
+            model.fit(X_train_scaled_df, y_train)
             # model.fit(sel_ac_data.drop(target, axis=1), sel_ac_data[target])
             # model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
             kfold_means = train_score_model(target, X_train_scaled_df, model)
+            # kfold_means = train_score_model(target, sel_ac_data_scaled_df, model)
 
             # # Train on the full training set and evaluate on the test set
-            model.fit(X_train_scaled, y_train)
-            y_pred = model.predict(X_test_scaled)
+            # model.fit(X_train_scaled, y_train)
+            # y_pred = model.predict(X_test_scaled)
 
-            # print(classification_report(y_true=true_class, y_pred=pred_class))
-            print(classification_report(y_true=y_test, y_pred=y_pred))
+            print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
+            # print(classification_report(y_true=y_test, y_pred=y_pred))
 
             # if kfold_means > 0.45:
             #     y = sel_ac_data['attack_cat']
@@ -432,10 +419,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             true_class = []
             pred_class = []
-
-
-
-
 
 
 def feature_select(data: pd.DataFrame, features: list):
@@ -526,8 +509,8 @@ if __name__ == '__main__':
             # feature_sel_test_K(base_data, 'Label')
             feature_sel_test_K(base_data, 'attack_cat')
         case 'L':
-            feature_sel_test_L(base_data, 'Label') # seems to be working fine
-            # feature_sel_test_L(base_data, 'attack_cat')
+            # feature_sel_test_L(base_data, 'Label')
+            feature_sel_test_L(base_data, 'attack_cat')
         case _:
             pass
 
