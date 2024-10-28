@@ -359,7 +359,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             print(f'Chi-Square Test Results ({target}):')
             print(f'{chi2_results}')
             print(f'============================================================================')
-            print(f"Top {len(sel_chi2_results)} features selected with 0 p-value & sorted by highest chi2 scores:")
+            print(f"Top {len(sel_chi2_results)} features selected with 0 p-value:")
             print(sel_chi2_results)
 
             # Get selected feature names
@@ -387,35 +387,32 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             scaled = scaler.fit_transform(sel_ac_data)
 
             # Convert scaled arrays back to DataFrames
-            X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
-            X_train_scaled_df['attack_cat'] = y_train.values  # Add the target back to the DataFrame
+            sel_ac_data_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+            sel_ac_data_train_scaled_df['attack_cat'] = y_train.values  # Add the target back to the DataFrame
             sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns)
 
             # Ensure the target variable is integer type
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            # model = LogisticRegression(max_iter=1500, n_jobs=-1)
-            model.fit(X_train_scaled_df, y_train)
-            # model.fit(sel_ac_data.drop(target, axis=1), sel_ac_data[target])
+            model.fit(sel_ac_data_train_scaled_df.drop(target, axis=1), sel_ac_data_train_scaled_df[target])
             # model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means = train_score_model(target, X_train_scaled_df, model)
-            # kfold_means = train_score_model(target, sel_ac_data_scaled_df, model)
+            kfold_means = train_score_model(target, sel_ac_data_train_scaled_df, model, 30)
+            # kfold_means = train_score_model(target, sel_ac_data_scaled_df, model, 30)
+            print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
-            # # Train on the full training set and evaluate on the test set
+            # Train on the full training set and evaluate on the test set
             # model.fit(X_train_scaled, y_train)
             # y_pred = model.predict(X_test_scaled)
-
-            print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
             # print(classification_report(y_true=y_test, y_pred=y_pred))
 
-            # if kfold_means > 0.45:
-            #     y = sel_ac_data['attack_cat']
-            #     x = sel_ac_data.drop('attack_cat', axis=1)
-            #
-            #     model_fin = KNeighborsClassifier(n_neighbors=9, n_jobs=-1)
-            #     model_fin.fit(x, y)
-            #     save_pkl('attack_cat_CHI', model_fin)
+            if kfold_means > 0.45:
+                final_y = sel_ac_data_train_scaled_df[target]
+                final_x = sel_ac_data_train_scaled_df.drop(target, axis=1)
+
+                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+                model_fin.fit(final_x, final_y)
+                save_pkl('attack_cat_CHI', model_fin)
 
             true_class = []
             pred_class = []
@@ -462,12 +459,14 @@ def aggregating_f1_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average='macro')
 
 
-def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier) -> (str, SKLClassifier):
+def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier, folds: int = 5) \
+        -> (str, SKLClassifier):
     """
 
     :param target_col:
     :param data:
     :param model:
+    :param folds:
     :return:
     """
     y = data[target_col]
@@ -475,7 +474,7 @@ def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier)
 
     # model = model.fit(x, y)
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=37)
+    kf = KFold(n_splits=folds, shuffle=True, random_state=37)
     scores = cross_val_score(model, x, y, cv=kf, scoring=make_scorer(aggregating_f1_scorer))
     return np.mean(scores)
 
