@@ -6,6 +6,31 @@ pd.set_option('display.max_rows', 100)
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.width', 5000)
 
+protocols = ['udp', 'tcp', 'egp', 'unas', 'sun-nd', 'arp', 'idpr', 'gmtp', 'ipv6-route',
+             'trunk-2', 'tlsp', 'bbn-rcc', 'sctp', 'ospf', 'dgp', 'ipcomp', 'prm', 'ptp',
+             'crudp', 'hmp', 'kryptolan', 'wsn', 'ipv6', 'any', 'secure-vmtp', 'visa',
+             'mobile', 'snp', 'iatp', 'wb-expak', 'crtp', 'il', 'ipnip', 'cpnx', 'fire',
+             'mfe-nsp', 'pnni', 'leaf-1', 'xtp', 'xnet', 'vmtp', 'l2tp', 'ddp', 'narp', 'aris',
+             '3pc', 'tcf', 'encap', 'ddx', 'swipe', 'idrp', 'iso-ip', 'ttp', 'sep',
+             'compaq-peer', 'uti', 'pup', 'idpr-cmtp', 'iplt', 'gre', 'etherip', 'sprite-rpc',
+             'sccopmce', 'qnx', 'ggp', 'ipv6-opts', 'ip', 'skip', 'br-sat-mon', 'a/n', 'mtp',
+             'merit-inp', 'aes-sp3-d', 'ifmp', 'ipx-n-ip', 'cphb', 'leaf-2', 'vrrp', 'chaos',
+             'st2', 'mhrp', 'sps', 'ib', 'trunk-1', 'mux', 'sat-mon', 'cftp', 'pim',
+             'sat-expak', 'ippc', 'micp', 'rdp', 'pipe', 'larp', 'sdrp', 'ipv6-no', 'scps',
+             'pri-enc', 'sm', 'nvp', 'nsfnet-igp', 'igp', 'isis', 'cbt', 'rvd', 'ipip',
+             'ipv6-frag', 'pgm', 'pvp', 'emcon', 'bna', 'eigrp', 'rsvp', 'irtp', 'zero',
+             'xns-idp', 'ipcv', 'icmp', 'srp', 'dcn', 'vines', 'smp', 'tp++', 'ax.25', 'netblt',
+             'iso-tp4', 'stp', 'fc', 'argus', 'i-nlsp', 'wb-mon', 'esp', 'igmp']
+proto_dtype = pd.CategoricalDtype(categories=protocols)
+
+states = ['CON', 'FIN', 'INT', 'REQ', 'URH', 'RST', 'ECR', 'ECO', 'CLO', 'PAR', 'ACC', 'URN',
+          'MAS']
+state_dtype = pd.CategoricalDtype(categories=states)
+
+services = ['dns', 'ftp', '-', 'http', 'smtp', 'ftp-data', 'ssh', 'pop3', 'dhcp', 'irc',
+            'radius', 'ssl', 'snmp']
+service_dtype = pd.CategoricalDtype(categories=services)
+
 
 def final_prep(data: pd.DataFrame):
     """
@@ -86,15 +111,23 @@ if __name__ == '__main__':
                        'sport': 'str',
                        'dstip': 'str',
                        'dsport': 'str',
+                       'proto': proto_dtype,
+                       'state': state_dtype,
+                       'service': service_dtype
                        }
 
     # Import base CSV data from file.
     base_data = pd.read_csv('../datasets/UNSW-NB15-BALANCED-TRAIN.csv', dtype=expected_dtypes,
                             low_memory=False)
 
-
     # Fix, Prune, encode, and impute.
-    process_data(base_data)
+    base_data = process_data(base_data)
+
+    # print(base_data.proto.unique())
+    # print(base_data.state.unique())
+    # print(base_data.service.unique())
+
+    print(base_data.dtypes)
 
     # Do this column dropping in train.py
     # final_prep(base_data)

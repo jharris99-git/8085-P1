@@ -7,10 +7,23 @@ import pickle
 
 from sklearn.metrics import classification_report
 
-from prep import process_data, prune
+from prep import prune, proto_dtype, state_dtype, service_dtype, encode
 from train import feature_select, feature_sel_test_K
 
+pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_columns', 205)
+pd.set_option('display.width', 5000)
+
 features = []
+
+expected_dtypes = {'srcip': 'str',
+                       'sport': 'str',
+                       'dstip': 'str',
+                       'dsport': 'str',
+                       'proto': proto_dtype,
+                       'state': state_dtype,
+                       'service': service_dtype
+                       }
 
 parser = argparse.ArgumentParser(
     prog='NIDS',
@@ -27,31 +40,19 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
-        data = pd.read_csv('./test_data/' + args.testset, low_memory=False, names=['srcip', 'sport', 'dstip', 'dsport',
-                                                                                   'proto', 'state', 'dur', 'sbytes',
-                                                                                   'dbytes', 'sttl', 'dttl', 'sloss',
-                                                                                   'dloss', 'service', 'Sload', 'Dload',
-                                                                                   'Spkts', 'Dpkts', 'swin', 'dwin',
-                                                                                   'stcpb', 'dtcpb', 'smeansz',
-                                                                                   'dmeansz', 'trans_depth',
-                                                                                   'res_bdy_len', 'Sjit', 'Djit',
-                                                                                   'Stime', 'Ltime', 'Sintpkt',
-                                                                                   'Dintpkt', 'tcprtt', 'synack',
-                                                                                   'ackdat', 'is_sm_ips_ports',
-                                                                                   'ct_state_ttl', 'ct_flw_http_mthd',
-                                                                                   'is_ftp_login', 'ct_ftp_cmd',
-                                                                                   'ct_srv_src', 'ct_srv_dst',
-                                                                                   'ct_dst_ltm', 'ct_src_ ltm',
-                                                                                   'ct_src_dport_ltm',
-                                                                                   'ct_dst_sport_ltm', 'ct_dst_src_ltm',
-                                                                                   'attack_cat', 'Label'])
+        data = pd.read_csv('./test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
+                           names=['srcip', 'sport', 'dstip', 'dsport', 'proto', 'state', 'dur', 'sbytes', 'dbytes',
+                                  'sttl', 'dttl', 'sloss', 'dloss', 'service', 'Sload', 'Dload', 'Spkts', 'Dpkts',
+                                  'swin', 'dwin', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len',
+                                  'Sjit', 'Djit', 'Stime', 'Ltime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat',
+                                  'is_sm_ips_ports', 'ct_state_ttl', 'ct_flw_http_mthd', 'is_ftp_login', 'ct_ftp_cmd',
+                                  'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm',
+                                  'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'attack_cat', 'Label'])
 
         # TODO: Data preparation
 
         data = prune(data)
-
-        # TODO: Make dummies from categorical types for proto, service, and state.
-        # DO NOT use process_data. attack_cat and Label do not exist in input test data
+        data = encode(data)
 
         mdl_url = ''
 
@@ -99,16 +100,20 @@ if __name__ == '__main__':
 
         x_test = None
         y_test = None
+        cats = None
         match args.task:
             case 'Label':
                 print(data)
                 x_test = data[features]
+                cats = [0, 1]
             case 'attack_cat':
                 x_test = data[features]
+                cats = ['Generic', 'Fuzzers', 'Exploits', 'DoS', 'Reconnaissance',
+                        'Backdoor', 'Analysis', 'Shellcode', 'Worms']
 
-
-        y_pred = mdl.predict(x_test, y_test)
-        print('Predicted values: ' + np.array(y_pred))
+        y_pred = mdl.predict(x_test)
+        y_pred = [cats[pred_val] for pred_val in y_pred]
+        print('Predicted values: ', np.array(y_pred))
 
         # Can't use bc mystery test data won't have y_true
         # print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
