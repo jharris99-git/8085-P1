@@ -64,7 +64,7 @@ if __name__ == '__main__':
                     match args.classifier:
                         case 'Label_RFC':
                             mdl_url = './models/Label_RFC.pkl'
-                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Stime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'proto_tcf', 'state_CLO', 'state_FIN']
+                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'dwin', 'dtcpb', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN']
                         case 'Label_PCA':
                             mdl_url = '../models/label_PCA.pkl'
                             features = []
@@ -99,7 +99,6 @@ if __name__ == '__main__':
             mdl = pickle.load(mdl_pkl)
 
         x_test = None
-        y_test = None
         cats = None
         match args.task:
             case 'Label':
@@ -112,13 +111,11 @@ if __name__ == '__main__':
                         'Backdoor', 'Analysis', 'Shellcode', 'Worms']
 
         y_pred = mdl.predict(x_test)
-        y_pred = [cats[pred_val] for pred_val in y_pred]
-        print('Predicted values: ', np.array(y_pred))
+        y_pred_cat = [cats[pred_val] for pred_val in y_pred]
+        print('Predicted values: ', np.array(y_pred_cat))
 
         # Can't use bc mystery test data won't have y_true
         # print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
-
-
 
     except pd.errors as e:  # Hopefully works
         print('invalid test data')
