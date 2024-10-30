@@ -102,7 +102,6 @@ if __name__ == '__main__':
         cats = None
         match args.task:
             case 'Label':
-                print(data)
                 x_test = data[features]
                 cats = [0, 1]
             case 'attack_cat':
