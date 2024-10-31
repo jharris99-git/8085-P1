@@ -351,14 +351,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             x = label_data.drop(target, axis=1)  # Features (excluding the target labels)
             y = label_data[target]  # Target variable (either 'attack_cat' or 'Label')
 
-            # # Convert categorical features to numerical using LabelEncoder
-            # label_encoder = LabelEncoder()
-            # for column in x.select_dtypes(include=['object', 'category']).columns:
-            #     x[column] = label_encoder.fit_transform(x[column])
-            #
-            # # Remove constant columns (those with zero variance) (used for attack_cat)
-            # x = x.loc[:, (x != x.iloc[0]).any()]
-
             # Apply the chi-square test
             chi2_scores, p_values = chi2(x, y)
             # Create a DataFrame with the results
@@ -388,7 +380,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            # model.fit(sel_label_data.drop('Label', axis=1), sel_label_data['Label'])
             model.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
             kfold_means = train_score_model(target, sel_label_data_scaled_df, model)
 
@@ -441,10 +432,9 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Create a DataFrame with the results
             chi2_results = pd.DataFrame({'Feature': x.columns, 'Chi2 Score': chi2_scores, 'p-value': p_values})
             # Filter results with p-value = 0 & highest chi2 Score
-            # sel_chi2_results = chi2_results[chi2_results['p-value'] == 0]
-            # sel_chi2_results = sel_chi2_results.sort_values(by='Chi2 Score', ascending=False)
-            sel_chi2_results = chi2_results.head(10)
-            # sel_chi2_results = sel_chi2_results.head(10)
+            sel_chi2_results = chi2_results[chi2_results['p-value'] == 0]
+            sel_chi2_results = sel_chi2_results.sort_values(by='Chi2 Score', ascending=False)
+            sel_chi2_results = sel_chi2_results.head(35) #seems like a good cutoff
 
             # Output results
             print(f'Chi-Square Test Results ({target}):')
@@ -458,52 +448,31 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             sel_ac_data_cols = selected_features.tolist() + [target]
             sel_ac_data = ac_data[sel_ac_data_cols]
 
-            # Check for multicollinearity and remove highly correlated features
-            # corr_matrix = sel_ac_data.corr().abs()
-            # upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-            # to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
-            # sel_ac_data = sel_ac_data.drop(columns=to_drop)
-
             # ~~ Attack Category Model Training ~~ #
-
-            # Split data into training and testing sets
-            X_train, X_test, y_train, y_test = train_test_split(sel_ac_data.drop('attack_cat', axis=1),
-                                                                sel_ac_data['attack_cat'], test_size=0.2,
-                                                                random_state=42)
 
             # Normalize the data
             scaler = StandardScaler()
-            X_train_scaled = scaler.fit_transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            scaled = scaler.fit_transform(sel_ac_data)
+            scaled = scaler.fit_transform(sel_ac_data.drop(columns=target))
 
             # Convert scaled arrays back to DataFrames
-            sel_ac_data_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
-            sel_ac_data_train_scaled_df['attack_cat'] = y_train.values  # Add the target back to the DataFrame
-            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns)
+            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
+            sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
 
             # Ensure the target variable is integer type
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-            model.fit(sel_ac_data_train_scaled_df.drop(target, axis=1), sel_ac_data_train_scaled_df[target])
-            # model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means = train_score_model(target, sel_ac_data_train_scaled_df, model, 30)
-            # kfold_means = train_score_model(target, sel_ac_data_scaled_df, model, 30)
+            model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
+            kfold_means = train_score_model(target, sel_ac_data_scaled_df, model, 30)
             print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
-            # Train on the full training set and evaluate on the test set
-            # model.fit(X_train_scaled, y_train)
-            # y_pred = model.predict(X_test_scaled)
-            # print(classification_report(y_true=y_test, y_pred=y_pred))
-
-            if kfold_means > 0.45:
-                final_y = sel_ac_data_train_scaled_df[target]
-                final_x = sel_ac_data_train_scaled_df.drop(target, axis=1)
-
-                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-                model_fin.fit(final_x, final_y)
-                save_pkl('attack_cat_CHI', model_fin)
+            # if kfold_means > 0.45:
+            #     final_y = sel_ac_data_scaled_df[target]
+            #     final_x = sel_ac_data_scaled_df.drop(target, axis=1)
+            #
+            #     model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            #     model_fin.fit(final_x, final_y)
+            #     save_pkl('attack_cat_CHI', model_fin)
 
             true_class = []
             pred_class = []
