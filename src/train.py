@@ -359,13 +359,13 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             x = label_data.drop(target, axis=1)  # Features (excluding the target labels)
             y = label_data[target]  # Target variable (either 'attack_cat' or 'Label')
 
-            # Convert categorical features to numerical using LabelEncoder
-            label_encoder = LabelEncoder()
-            for column in x.select_dtypes(include=['object', 'category']).columns:
-                x[column] = label_encoder.fit_transform(x[column])
-
-            # Remove constant columns (those with zero variance) (used for attack_cat)
-            x = x.loc[:, (x != x.iloc[0]).any()]
+            # # Convert categorical features to numerical using LabelEncoder
+            # label_encoder = LabelEncoder()
+            # for column in x.select_dtypes(include=['object', 'category']).columns:
+            #     x[column] = label_encoder.fit_transform(x[column])
+            #
+            # # Remove constant columns (those with zero variance) (used for attack_cat)
+            # x = x.loc[:, (x != x.iloc[0]).any()]
 
             # Apply the chi-square test
             chi2_scores, p_values = chi2(x, y)
@@ -493,7 +493,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Ensure the target variable is integer type
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
-            model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+            model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
             model.fit(sel_ac_data_train_scaled_df.drop(target, axis=1), sel_ac_data_train_scaled_df[target])
             # model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
             kfold_means = train_score_model(target, sel_ac_data_train_scaled_df, model, 30)
@@ -509,7 +509,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
                 final_y = sel_ac_data_train_scaled_df[target]
                 final_x = sel_ac_data_train_scaled_df.drop(target, axis=1)
 
-                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
                 model_fin.fit(final_x, final_y)
                 save_pkl('attack_cat_CHI', model_fin)
 

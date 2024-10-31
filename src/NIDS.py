@@ -68,9 +68,9 @@ if __name__ == '__main__':
                         case 'Label_PCA':
                             mdl_url = '../models/label_PCA.pkl'
                             features = []
-                        case 'label_m3':
-                            mdl_url = './models/label_m3.pkl'
-                            features = []
+                        case 'label_CHI':
+                            mdl_url = '../models/Label_CHI.pkl'
+                            features = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack']
                         case _:
                             print('invalid classifer model')
                             exit(2)
@@ -84,9 +84,9 @@ if __name__ == '__main__':
                             factor = pd.factorize(data['attack_cat'])
                             data.attack_cat = factor[0]
                             features = []
-                        case 'ac_m3':
-                            mdl_url = './models/ac_m3.pkl'
-                            features = []
+                        case 'ac_CHI':
+                            mdl_url = '../models/attack_cat_CHI.pkl'
+                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts']
                         case _:
                             print('invalid classifer model')
                             exit(2)
@@ -110,13 +110,14 @@ if __name__ == '__main__':
                         'Backdoor', 'Analysis', 'Shellcode', 'Worms']
 
         y_pred = mdl.predict(x_test)
+        y_pred = [int(val) for val in y_pred]
         y_pred_cat = [cats[pred_val] for pred_val in y_pred]
         print('Predicted values: ', np.array(y_pred_cat))
 
         # Can't use bc mystery test data won't have y_true
         # print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
 
-    except pd.errors as e:  # Hopefully works
+    except pd.errors.ParserError as e:  # Hopefully works
         print('invalid test data')
         exit(1)
 
