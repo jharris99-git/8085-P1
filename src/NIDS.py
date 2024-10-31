@@ -68,7 +68,7 @@ if __name__ == '__main__':
                         case 'Label_PCA':
                             mdl_url = '../models/label_PCA.pkl'
                             features = []
-                        case 'label_CHI':
+                        case 'Label_CHI':
                             mdl_url = '../models/Label_CHI.pkl'
                             features = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack']
                         case _:
@@ -84,9 +84,9 @@ if __name__ == '__main__':
                             factor = pd.factorize(data['attack_cat'])
                             data.attack_cat = factor[0]
                             features = []
-                        case 'ac_CHI':
+                        case 'attack_cat_CHI':
                             mdl_url = '../models/attack_cat_CHI.pkl'
-                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts']
+                            features = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit', 'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts', 'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss', 'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur', 'service_-', 'proto_tcp', 'state_FIN', 'service_dns']
                         case _:
                             print('invalid classifer model')
                             exit(2)
