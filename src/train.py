@@ -60,14 +60,6 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-            # ~~~~~~~ Label Feature Selection ~~~~~~~ #
-
-            label_data_y = label_data['Label']
-            # label_data_X = label_data.drop('Label', axis=1)
-
-            # Scale data, not always necessary.
-            # scaler = StandardScaler().fit(label_data_X)
-            # label_data_X = scaler.transform(label_data_X)
 
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
             mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
@@ -82,7 +74,6 @@ def experiment_j(data: pd.DataFrame, cat: str):
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
-
             print(result[0], "proved more reliable than", result[1])
 
             # Clear aggregated values.
@@ -104,30 +95,31 @@ def experiment_j(data: pd.DataFrame, cat: str):
             print(ac_data.attack_cat.head())
             print(definitions)
 
-            ac_data_y = ac_data['attack_cat']
-            ac_data_X = ac_data.drop('attack_cat', axis=1)
-
             # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
-            est = RandomForestClassifier(n_estimators=180, verbose=2, n_jobs=10, class_weight='balanced_subsample')
-            sel = SelectFromModel(est)  # , threshold=-np.inf, max_features=60
+            mdl_1 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
-            sel = sel.fit(ac_data_X, ac_data_y)
+            sel_ac_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack', 'attack_cat']
 
-            # Get selected Attack Categories according to SelectFromModel /
-            # and add them to the columnsfor use in the final model
-            sel_feat_ind_ac = np.where(sel.get_support())[0]
-            sel_feat_ac = ac_data.columns[sel_feat_ind_ac]
+            mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
-            print(sel_feat_ac)
-
-            sel_ac_data_cols = sel_feat_ac.to_list() + ['attack_cat']
-            sel_ac_data = ac_data[sel_ac_data_cols]
+            kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
 
             true_class = []
             pred_class = []
 
+            kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
 
 
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
@@ -603,7 +595,7 @@ if __name__ == '__main__':
     match NAME:
         case 'J':
             # feature_sel_test_J(base_data, 'attack_cat')
-            experiment_j(base_data, 'Label')
+            experiment_j(base_data, 'attack_cat')
         case 'K':
             # feature_sel_test_K(base_data, 'Label')
             feature_sel_test_K(base_data, 'attack_cat')
