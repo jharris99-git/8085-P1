@@ -66,7 +66,7 @@ if __name__ == '__main__':
                             mdl_url = './models/Label_RFC.pkl'
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'dwin', 'dtcpb', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN']
                         case 'Label_PCA':
-                            mdl_url = '../models/label_PCA.pkl'
+                            mdl_url = '../models/Label_MLP.pkl'
                             features = []
                         case 'Label_CHI':
                             mdl_url = '../models/Label_CHI.pkl'
@@ -79,8 +79,8 @@ if __name__ == '__main__':
                         case 'attack_cat_RFC':
                             mdl_url = './models/attack_cat_RFC.pkl'
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len', 'Sjit', 'Djit', 'Stime', 'Ltime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_flw_http_mthd', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'proto_ttp', 'state_URN', 'service_dhcp', 'service_ftp-data']
-                        case 'attack_cat_PCA':
-                            mdl_url = './models/attack_cat_PCA.pkl'
+                        case 'attack_cat_MLP':
+                            mdl_url = '../models/attack_cat_MLP.pkl'
                             factor = pd.factorize(data['attack_cat'])
                             data.attack_cat = factor[0]
                             features = []

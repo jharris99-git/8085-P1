@@ -559,7 +559,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'J'
+    NAME = ''
 
     match NAME:
         case 'J':
