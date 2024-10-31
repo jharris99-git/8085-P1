@@ -31,6 +31,105 @@ ac_features = []
 label_features = []
 
 
+def experiment_j(data: pd.DataFrame, cat: str):
+    # Feature Selection Method:     SelectFromModel
+    # Chosen Classiifier:           RandomForestClassifier
+    #
+    # By default, uses the mean of the feature_importances_ values of a fit model to select features
+    # based on the training of the model.
+    #
+    # Used here to select the features, then test those features across KFolds with F1-macro scoring.
+    #
+    # If the mean F1-macro score passes the given threshold, train a final RFC with more estimators and save it.
+
+    # Used for aggregated classification report in KFold
+    global true_class
+    global pred_class
+
+    # Split data for label classification
+    label_data = pd.DataFrame(data)
+    label_data = label_data.drop('attack_cat', axis=1)
+
+    # Split data for attack category classification
+    ac_data = pd.DataFrame(data)
+    ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
+    ac_data = ac_data.drop('Label', axis=1)
+    match cat:
+        case 'Label':
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+            # ~~~~~~~ Label Feature Selection ~~~~~~~ #
+
+            label_data_y = label_data['Label']
+            # label_data_X = label_data.drop('Label', axis=1)
+
+            # Scale data, not always necessary.
+            # scaler = StandardScaler().fit(label_data_X)
+            # label_data_X = scaler.transform(label_data_X)
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            sel_label_cols = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'dwin', 'dtcpb', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN', 'Label']
+
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            kfold_means_2 = train_score_model('Label', label_data[sel_label_cols], mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+
+        case 'attack_cat':
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~ Attack Category ~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+            # ~~ Attack Category Feature Selection ~~ #
+
+            # Factorize Attack Category
+            factor = pd.factorize(ac_data['attack_cat'])
+            ac_data.attack_cat = factor[0]
+            definitions = factor[1]
+            print(ac_data.attack_cat.head())
+            print(definitions)
+
+            ac_data_y = ac_data['attack_cat']
+            ac_data_X = ac_data.drop('attack_cat', axis=1)
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            est = RandomForestClassifier(n_estimators=180, verbose=2, n_jobs=10, class_weight='balanced_subsample')
+            sel = SelectFromModel(est)  # , threshold=-np.inf, max_features=60
+
+            sel = sel.fit(ac_data_X, ac_data_y)
+
+            # Get selected Attack Categories according to SelectFromModel /
+            # and add them to the columnsfor use in the final model
+            sel_feat_ind_ac = np.where(sel.get_support())[0]
+            sel_feat_ac = ac_data.columns[sel_feat_ind_ac]
+
+            print(sel_feat_ac)
+
+            sel_ac_data_cols = sel_feat_ac.to_list() + ['attack_cat']
+            sel_ac_data = ac_data[sel_ac_data_cols]
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+
+
+
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
     # Feature Selection Method:     SelectFromModel
     # Chosen Classiifier:           RandomForestClassifier
@@ -499,11 +598,12 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'J'
 
     match NAME:
         case 'J':
-            feature_sel_test_J(base_data, 'attack_cat')
+            # feature_sel_test_J(base_data, 'attack_cat')
+            experiment_j(base_data, 'Label')
         case 'K':
             # feature_sel_test_K(base_data, 'Label')
             feature_sel_test_K(base_data, 'attack_cat')
