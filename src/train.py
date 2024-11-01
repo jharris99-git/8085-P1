@@ -125,7 +125,7 @@ def experiment_j(data: pd.DataFrame, cat: str):
 
             # Train and score general model, returning the average f1 score.
             kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             # Clear aggregated values.
 
@@ -134,7 +134,7 @@ def experiment_j(data: pd.DataFrame, cat: str):
 
             # Train and score fs model, returning the average f1 score.
             kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             # End time and calc diff
             end_time = time.time_ns()
@@ -202,6 +202,10 @@ def experiment_K(data: pd.DataFrame, target: str):
             ack_data = ack_data.drop('Label', axis=1)
             factor = pd.factorize(ack_data['attack_cat'])
             ack_data.attack_cat = factor[0]
+            definitions = factor[1]
+            definitions = ['None'] + list(definitions[1:])
+            print(ack_data.attack_cat.head())
+            print(definitions)
 
             train_data_x = ack_data.drop('attack_cat', axis=1)
             train_data_y = ack_data['attack_cat']
@@ -223,13 +227,13 @@ def experiment_K(data: pd.DataFrame, target: str):
             mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
             kfold_means_1 = train_score_model('attack_cat', ack_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             true_class = []
             pred_class = []
 
             kfold_means_2 = train_score_model('attack_cat', train_data, mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
@@ -470,7 +474,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             kfold_means = train_score_model('attack_cat', sel_ac_data, model)
 
             # Print classification report of aggregated predictions.
-            print(classification_report(y_true=true_class, y_pred=pred_class))
+            print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
             if kfold_means > 0.5:
@@ -483,7 +487,7 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
                 model_fin.fit(x, y)
 
                 # Pickle and save model as binary.
-                save_pkl('attack_cat_RFC', model_fin)
+                # save_pkl('attack_cat_RFC', model_fin)
 
             # Clear aggregated values.
 
@@ -505,6 +509,10 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
             ack_data = ack_data.drop('Label', axis=1)
             factor = pd.factorize(ack_data['attack_cat'])
             ack_data.attack_cat = factor[0]
+            definitions = factor[1]
+            definitions = ['None'] + list(definitions[1:])
+            print(ack_data.attack_cat.head())
+            print(definitions)
 
             train_data_x = ack_data.drop('attack_cat', axis=1)
             train_data_y = ack_data['attack_cat']
@@ -540,7 +548,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     kfold_means = train_score_model(target, train_data, model)
 
     # # Print classification report of aggregated predictions.
-    print(classification_report(y_true=true_class, y_pred=pred_class))
+    print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
     if kfold_means > 0.45:
@@ -752,7 +760,7 @@ def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier,
     # model = model.fit(x, y)
 
     kf = KFold(n_splits=folds, shuffle=True, random_state=37)
-    scores = cross_val_score(model, x, y, cv=kf, scoring=make_scorer(aggregating_f1_scorer))
+    scores = cross_val_score(model, x, y, cv=kf, scoring=make_scorer(aggregating_f1_scorer), n_jobs=-1)
     return np.mean(scores)
 
 
@@ -776,16 +784,16 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'K'
 
     match NAME:
         case 'J':
-            # feature_sel_test_J(base_data, 'attack_cat')
-            experiment_j(base_data, 'attack_cat')
+            feature_sel_test_J(base_data, 'attack_cat')
+            # experiment_j(base_data, 'attack_cat')
         case 'K':
-            feature_sel_test_K(base_data, 'Label')
-            # feature_sel_test_K(base_data, 'attack_cat')
-            experiment_K(base_data, 'Label')
+            # feature_sel_test_K(base_data, 'Label')
+            feature_sel_test_K(base_data, 'attack_cat')
+            # experiment_K(base_data, 'Label')
             # experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
