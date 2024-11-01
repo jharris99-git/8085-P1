@@ -4,11 +4,12 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from numpy.f2py.crackfortran import verbose
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel, SelectKBest
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, make_scorer, classification_report
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.metrics import f1_score, make_scorer, classification_report, accuracy_score
+from sklearn.model_selection import KFold, cross_val_score, train_test_split, RandomizedSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
@@ -131,6 +132,97 @@ def experiment_j(data: pd.DataFrame, cat: str):
             true_class = []
             pred_class = []
 
+def experiment_K(data: pd.DataFrame, target: str):
+    # Principal Component Analysis (PCA)
+    # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
+    # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
+    # checking shape
+    global true_class
+    global pred_class
+
+    match target:
+        case 'Label':
+            label_data = pd.DataFrame(data)
+            label_data = label_data.drop('attack_cat', axis=1)
+
+            train_data_x = label_data.drop('Label', axis=1)
+            train_data_y = label_data['Label']
+
+            scaler = StandardScaler()
+            train_data_x = scaler.fit_transform(train_data_x)
+
+            # Importing PCA
+            from sklearn.decomposition import PCA
+            # Let's say, components = 15
+            pca = PCA(n_components=50)
+            pca.fit(train_data_x)
+            pca_data = pca.transform(train_data_x)
+            train_data = pd.DataFrame(pca_data)
+            train_data[target] = train_data_y
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model('Label', train_data, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+        case 'attack_cat':
+            ack_data = pd.DataFrame(data)
+            ack_data = ack_data.drop('Label', axis=1)
+            factor = pd.factorize(ack_data['attack_cat'])
+            ack_data.attack_cat = factor[0]
+
+            train_data_x = ack_data.drop('attack_cat', axis=1)
+            train_data_y = ack_data['attack_cat']
+
+            scaler = StandardScaler()
+            train_data_x = scaler.fit_transform(train_data_x)
+
+            # Importing PCA
+            from sklearn.decomposition import PCA
+            # Let's say, components = 15
+            pca = PCA(n_components=50)
+            pca.fit(train_data_x)
+            pca_data = pca.transform(train_data_x)
+            train_data = pd.DataFrame(pca_data)
+            train_data[target] = train_data_y
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model('attack_cat', ack_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model('attack_cat', train_data, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+
+
 
 def experiment_l(data: pd.DataFrame, target: str):
     # Used for aggregated classification report in KFold
@@ -153,6 +245,14 @@ def experiment_l(data: pd.DataFrame, target: str):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
             mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+            mdl_1.fit(label_data.drop(target, axis=1), label_data[target])
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
 
             sel_label_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime',
                               'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts',
@@ -167,14 +267,14 @@ def experiment_l(data: pd.DataFrame, target: str):
             sel_label_data = label_data[sel_label_cols]
             # mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
 
-            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            # Normalize the data
+            scaler = StandardScaler()
+            scaled = scaler.fit_transform(sel_label_data)
+            # Convert scaled arrays back to DataFrames
+            sel_label_data_scaled_df = pd.DataFrame(scaled, columns=sel_label_data.columns)
 
-            # Clear aggregated values.
-            true_class = []
-            pred_class = []
-
-            kfold_means_2 = train_score_model('Label', sel_label_data, mdl_2)
+            mdl_2.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
+            kfold_means_2 = train_score_model('Label', sel_label_data_scaled_df, mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
@@ -185,29 +285,25 @@ def experiment_l(data: pd.DataFrame, target: str):
             pred_class = []
 
         case 'attack_cat':
-            # Factorize Attack Category
-            factor = pd.factorize(ac_data['attack_cat'])
-            ac_data.attack_cat = factor[0]
-            definitions = factor[1]
-            print(ac_data.attack_cat.head())
-            print(definitions)
-
             mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-
-            sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
-                              'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
-                              'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
-                              'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
-                              'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
-
-            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-
             kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
             true_class = []
             pred_class = []
+
+            # Factorize Attack Category
+            factor = pd.factorize(ac_data['attack_cat'])
+            ac_data.attack_cat = factor[0]
+            definitions = factor[1]
+
+            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
+                           'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
+                           'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
+                           'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
+                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
 
             sel_ac_data = ac_data[sel_ac_cols]
             # Normalize the data
@@ -220,8 +316,9 @@ def experiment_l(data: pd.DataFrame, target: str):
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             mdl_2.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            kfold_means_2 = train_score_model('attack_cat', sel_ac_data_scaled_df, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class,
+                                                                target_names=definitions))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
@@ -229,8 +326,6 @@ def experiment_l(data: pd.DataFrame, target: str):
             # Clear aggregated values.
             true_class = []
             pred_class = []
-
-
 
 
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
@@ -372,74 +467,72 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             true_class = []
             pred_class = []
 
-
 def feature_sel_test_K(data: pd.DataFrame, target: str):
-    # Principal Component Analysis (PCA)
-    # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
-    # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
-    # checking shape
     train_data_x = None
     train_data_y = None
     match target:
         case 'Label':
-            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
             label_data = pd.DataFrame(data)
             label_data = label_data.drop('attack_cat', axis=1)
 
             train_data_x = label_data.drop('Label', axis=1)
             train_data_y = label_data['Label']
         case 'attack_cat':
-            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
             ack_data = pd.DataFrame(data)
             ack_data = ack_data.drop('Label', axis=1)
-            train_data_x = ack_data.drop('attack_cat', axis=1)
             factor = pd.factorize(ack_data['attack_cat'])
             ack_data.attack_cat = factor[0]
+
+            train_data_x = ack_data.drop('attack_cat', axis=1)
             train_data_y = ack_data['attack_cat']
 
-    # Mean
-    X_mean = train_data_x.mean()
-
-    # Standard deviation
-    X_std = train_data_x.std()
-
-    # Standardization
-    Z = (train_data_x - X_mean) / X_std
-    # Importing PCA
-    from sklearn.decomposition import PCA
-    # Let's say, components = 15
-    pca = PCA(n_components=50)
-    pca.fit(Z)
-    x_pca = pca.transform(Z)
-
     # Uncomment to generate models
-    # global true_class
-    # global pred_class
-    #
-    # train_data = pd.DataFrame(x_pca)
-    # train_data[target] = train_data_y
-    #
+    global true_class
+    global pred_class
+
+    scaler = StandardScaler()
+    train_data_x = scaler.fit_transform(train_data_x)
+    train_data = pd.DataFrame(train_data_x)
+    train_data[target] = train_data_y
+
+    # model = MLPClassifier(max_iter=300, verbose=1)
+    # GRID = [
+    #     {
+    #      'solver': ['adam'],
+    #      'hidden_layer_sizes': [(500, 400, 300, 200, 100), (400, 400, 400, 400, 400),
+    #                                        (300, 300, 300, 300, 300), (200, 200, 200, 200, 200)],
+    #      'activation': ['logistic', 'tanh', 'relu'],
+    #      'alpha': [0.0001, 0.001],
+    #      'early_stopping': [True]
+    #      }
+    # ]
+    # random_search = RandomizedSearchCV(model, GRID,
+    #                            scoring=make_scorer(accuracy_score, average='macro'),
+    #                            n_jobs=-1, cv=3, refit=True, verbose=1)
+    # random_search.fit(train_data, train_data_y)
+    # print(random_search.best_params_)
+
+    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='relu',early_stopping=True, max_iter=300, verbose=1)
     # # Define model for kfold using selected features
-    # model = MLPClassifier(alpha=0.001, max_iter=300, random_state=37, verbose=1)
-    # kfold_means = train_score_model(target, train_data, model)
-    #
+    kfold_means = train_score_model(target, train_data, model)
+
     # # Print classification report of aggregated predictions.
-    # print(classification_report(y_true=true_class, y_pred=pred_class))
-    #
+    print(classification_report(y_true=true_class, y_pred=pred_class))
+
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    # if kfold_means > 0.45:
-    #     y = train_data[target]
-    #     x = train_data.drop(target, axis=1)
-    #
-    #     # Fit final model.
-    #     model_fin = MLPClassifier(alpha=0.0001, max_iter=400, random_state=32, verbose=1)
-    #     model_fin.fit(x, y)
-    #     # Pickle and save model as binary.
-    #     save_pkl(target + '_PCA', model_fin)
-    #
-    # true_class = []
-    # pred_class = []
-    return x_pca
+    if kfold_means > 0.95:
+        y = train_data[target]
+        x = train_data.drop(target, axis=1)
+
+        # Fit final model.
+        model_fin = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.0001, activation='relu',early_stopping=True, max_iter=400, verbose=1)
+        model_fin.fit(x, y)
+        # Pickle and save model as binary.
+        save_pkl(target + '_MLP', model_fin)
+
+    true_class = []
+    pred_class = []
+    return train_data_x
 
 
 def feature_sel_test_L(data: pd.DataFrame, target: str):
@@ -492,7 +585,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
             model.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
-            # model.fit(label_data.drop(target, axis=1), label_data[target])
             kfold_means = train_score_model(target, sel_label_data_scaled_df, model)
 
             # Print classification report of aggregated predictions.
@@ -670,7 +762,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'J'
+    NAME = ''
 
     match NAME:
         case 'J':
@@ -678,12 +770,14 @@ if __name__ == '__main__':
             experiment_j(base_data, 'Label')
         case 'K':
             # feature_sel_test_K(base_data, 'Label')
-            feature_sel_test_K(base_data, 'attack_cat')
+            # feature_sel_test_K(base_data, 'attack_cat')
+            # experiment_K(base_data, 'Label')
+            experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            experiment_l(base_data, 'Label')
-            # experiment_l(base_data, 'attack_cat')
+            # experiment_l(base_data, 'Label')
+            experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
