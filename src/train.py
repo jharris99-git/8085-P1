@@ -1,5 +1,6 @@
 import gzip
 import pickle
+import time
 from typing import Union
 
 import numpy as np
@@ -70,6 +71,9 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # Create RFC for fitting with feature selection.
             mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
+            # Start timer
+            start_time = time.time_ns()
+
             # Train and score general model, returning the average f1 score.
             kfold_means_1 = train_score_model('Label', label_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
@@ -81,6 +85,11 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # Train and score fs model, returning the average f1 score.
             kfold_means_2 = train_score_model('Label', label_data[sel_label_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # End time and calc diff
+            end_time = time.time_ns()
+            total_time = (end_time - start_time) / 1_000_000_000
+            print(total_time, "s", sep='')
 
             # Compare average f1 scores, resolving which does better. Simpler model wins in case of a tie.
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
@@ -111,9 +120,12 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # Create RFC for fitting with feature selection.
             mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
+            # Start timer
+            start_time = time.time_ns()
+
             # Train and score general model, returning the average f1 score.
-            kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            # kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
+            # print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
 
@@ -123,6 +135,11 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # Train and score fs model, returning the average f1 score.
             kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # End time and calc diff
+            end_time = time.time_ns()
+            total_time = (end_time - start_time) / 1_000_000_000
+            print(total_time, "s", sep='')
 
             # Compare average f1 scores, resolving which does better. Simpler model wins in case of a tie.
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
@@ -762,12 +779,12 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'J'
 
     match NAME:
         case 'J':
             # feature_sel_test_J(base_data, 'attack_cat')
-            experiment_j(base_data, 'Label')
+            experiment_j(base_data, 'attack_cat')
         case 'K':
             # feature_sel_test_K(base_data, 'Label')
             # feature_sel_test_K(base_data, 'attack_cat')
