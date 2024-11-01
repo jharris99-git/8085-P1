@@ -41,7 +41,7 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
-        data = pd.read_csv('../test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
+        data = pd.read_csv('./test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
                            names=['srcip', 'sport', 'dstip', 'dsport', 'proto', 'state', 'dur', 'sbytes', 'dbytes',
                                   'sttl', 'dttl', 'sloss', 'dloss', 'service', 'Sload', 'Dload', 'Spkts', 'Dpkts',
                                   'swin', 'dwin', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len',
