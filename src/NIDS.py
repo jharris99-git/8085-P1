@@ -6,6 +6,7 @@ import pandas as pd
 import pickle
 
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import StandardScaler
 
 from prep import prune, proto_dtype, state_dtype, service_dtype, encode
 from train import feature_select, feature_sel_test_K
@@ -40,7 +41,7 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
-        data = pd.read_csv('./test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
+        data = pd.read_csv('../test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
                            names=['srcip', 'sport', 'dstip', 'dsport', 'proto', 'state', 'dur', 'sbytes', 'dbytes',
                                   'sttl', 'dttl', 'sloss', 'dloss', 'service', 'Sload', 'Dload', 'Spkts', 'Dpkts',
                                   'swin', 'dwin', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len',
@@ -65,9 +66,14 @@ if __name__ == '__main__':
                         case 'Label_RFC':
                             mdl_url = './models/Label_RFC.pkl'
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'dwin', 'dtcpb', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN']
-                        case 'Label_PCA':
+                        case 'Label_MLP':
                             mdl_url = '../models/Label_MLP.pkl'
-                            features = []
+                            data = data.drop('Label', axis=1)
+                            data = data.drop('attack_cat', axis=1)
+                            scaler = StandardScaler()
+                            data = scaler.fit_transform(data)
+                            data = pd.DataFrame(data)
+                            features = data.columns
                         case 'label_CHI':
                             mdl_url = '../models/Label_CHI.pkl'
                             features = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack']
@@ -81,9 +87,14 @@ if __name__ == '__main__':
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len', 'Sjit', 'Djit', 'Stime', 'Ltime', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_flw_http_mthd', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'proto_ttp', 'state_URN', 'service_dhcp', 'service_ftp-data']
                         case 'attack_cat_MLP':
                             mdl_url = '../models/attack_cat_MLP.pkl'
-                            factor = pd.factorize(data['attack_cat'])
-                            data.attack_cat = factor[0]
-                            features = []
+                            # factor = pd.factorize(data['attack_cat'])
+                            # data.attack_cat = factor[0]
+                            data = data.drop('Label', axis=1)
+                            data = data.drop('attack_cat', axis=1)
+                            scaler = StandardScaler()
+                            data = scaler.fit_transform(data)
+                            data = pd.DataFrame(data)
+                            features = data.columns
                         case 'ac_CHI':
                             mdl_url = '../models/attack_cat_CHI.pkl'
                             features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts']

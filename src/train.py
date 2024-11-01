@@ -4,11 +4,12 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+from numpy.f2py.crackfortran import verbose
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel, SelectKBest
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, make_scorer, classification_report
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.metrics import f1_score, make_scorer, classification_report, accuracy_score
+from sklearn.model_selection import KFold, cross_val_score, train_test_split, RandomizedSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
@@ -286,49 +287,71 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
             ack_data.attack_cat = factor[0]
             train_data_y = ack_data['attack_cat']
 
-    # Mean
-    X_mean = train_data_x.mean()
-
-    # Standard deviation
-    X_std = train_data_x.std()
-
-    # Standardization
-    Z = (train_data_x - X_mean) / X_std
-    # Importing PCA
-    from sklearn.decomposition import PCA
-    # Let's say, components = 15
-    pca = PCA(n_components=50)
-    pca.fit(Z)
-    x_pca = pca.transform(Z)
+    # # Mean
+    # X_mean = train_data_x.mean()
+    #
+    # # Standard deviation
+    # X_std = train_data_x.std()
+    #
+    # # Standardization
+    # Z = (train_data_x - X_mean) / X_std
+    # # Importing PCA
+    # from sklearn.decomposition import PCA
+    # # Let's say, components = 15
+    # pca = PCA(n_components=50)
+    # pca.fit(Z)
+    # x_pca = pca.transform(Z)
 
     # Uncomment to generate models
-    # global true_class
-    # global pred_class
-    #
-    # train_data = pd.DataFrame(x_pca)
-    # train_data[target] = train_data_y
-    #
+    global true_class
+    global pred_class
+
+    scaler = StandardScaler()
+    train_data_x = scaler.fit_transform(train_data_x)
+    train_data = pd.DataFrame(train_data_x)
+    train_data[target] = train_data_y
+
+
+    # model = MLPClassifier(max_iter=300, verbose=1)
+    # GRID = [
+    #     {
+    #      'solver': ['adam'],
+    #      'hidden_layer_sizes': [(500, 400, 300, 200, 100), (400, 400, 400, 400, 400),
+    #                                        (300, 300, 300, 300, 300), (200, 200, 200, 200, 200)],
+    #      'activation': ['logistic', 'tanh', 'relu'],
+    #      'alpha': [0.0001, 0.001],
+    #      'early_stopping': [True]
+    #      }
+    # ]
+    # random_search = RandomizedSearchCV(model, GRID,
+    #                            scoring=make_scorer(accuracy_score, average='macro'),
+    #                            n_jobs=-1, cv=3, refit=True, verbose=1)
+    # random_search.fit(train_data, train_data_y)
+    # print(random_search.best_params_)
+
+
+    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='relu',early_stopping=True, max_iter=300, verbose=1)
     # # Define model for kfold using selected features
-    # model = MLPClassifier(alpha=0.001, max_iter=300, random_state=37, verbose=1)
-    # kfold_means = train_score_model(target, train_data, model)
-    #
+    kfold_means = train_score_model(target, train_data, model)
+
     # # Print classification report of aggregated predictions.
-    # print(classification_report(y_true=true_class, y_pred=pred_class))
-    #
+    print(classification_report(y_true=true_class, y_pred=pred_class))
+
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    # if kfold_means > 0.45:
-    #     y = train_data[target]
-    #     x = train_data.drop(target, axis=1)
-    #
-    #     # Fit final model.
-    #     model_fin = MLPClassifier(alpha=0.0001, max_iter=400, random_state=32, verbose=1)
-    #     model_fin.fit(x, y)
-    #     # Pickle and save model as binary.
-    #     save_pkl(target + '_PCA', model_fin)
-    #
-    # true_class = []
-    # pred_class = []
-    return x_pca
+    # kfold_means = 1
+    if kfold_means > 0.95:
+        y = train_data[target]
+        x = train_data.drop(target, axis=1)
+
+        # Fit final model.
+        model_fin = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.0001, activation='relu',early_stopping=True, max_iter=400, verbose=1)
+        model_fin.fit(x, y)
+        # Pickle and save model as binary.
+        save_pkl(target + '_MLP', model_fin)
+
+    true_class = []
+    pred_class = []
+    return train_data_x
 
 
 def feature_sel_test_L(data: pd.DataFrame, target: str):
@@ -590,14 +613,14 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'K'
 
     match NAME:
         case 'J':
             feature_sel_test_J(base_data, 'attack_cat')
         case 'K':
-            # feature_sel_test_K(base_data, 'Label')
-            feature_sel_test_K(base_data, 'attack_cat')
+            feature_sel_test_K(base_data, 'Label')
+            # feature_sel_test_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             feature_sel_test_L(base_data, 'attack_cat')
