@@ -143,6 +143,14 @@ def experiment_l(data: pd.DataFrame, target: str):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
             mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+            mdl_1.fit(label_data.drop(target, axis=1), label_data[target])
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
 
             sel_label_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime',
                               'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts',
@@ -155,16 +163,15 @@ def experiment_l(data: pd.DataFrame, target: str):
 
             mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
             sel_label_data = label_data[sel_label_cols]
-            mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
 
-            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            # Normalize the data
+            scaler = StandardScaler()
+            scaled = scaler.fit_transform(sel_label_data)
+            # Convert scaled arrays back to DataFrames
+            sel_label_data_scaled_df = pd.DataFrame(scaled, columns=sel_label_data.columns)
 
-            # Clear aggregated values.
-            true_class = []
-            pred_class = []
-
-            kfold_means_2 = train_score_model('Label', sel_label_data, mdl_2)
+            mdl_2.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
+            kfold_means_2 = train_score_model('Label', sel_label_data_scaled_df, mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
@@ -175,29 +182,25 @@ def experiment_l(data: pd.DataFrame, target: str):
             pred_class = []
 
         case 'attack_cat':
-            # Factorize Attack Category
-            factor = pd.factorize(ac_data['attack_cat'])
-            ac_data.attack_cat = factor[0]
-            definitions = factor[1]
-            print(ac_data.attack_cat.head())
-            print(definitions)
-
             mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-
-            sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
-                              'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
-                              'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
-                              'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
-                              'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
-
-            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-
             kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
             true_class = []
             pred_class = []
+
+            # Factorize Attack Category
+            factor = pd.factorize(ac_data['attack_cat'])
+            ac_data.attack_cat = factor[0]
+            definitions = factor[1]
+
+            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
+                           'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
+                           'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
+                           'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
+                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
 
             sel_ac_data = ac_data[sel_ac_cols]
             # Normalize the data
@@ -210,8 +213,9 @@ def experiment_l(data: pd.DataFrame, target: str):
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             mdl_2.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            kfold_means_2 = train_score_model('attack_cat', sel_ac_data_scaled_df, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class,
+                                                                target_names=definitions))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
@@ -219,8 +223,6 @@ def experiment_l(data: pd.DataFrame, target: str):
             # Clear aggregated values.
             true_class = []
             pred_class = []
-
-
 
 
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
@@ -482,8 +484,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
             model.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
-            # model.fit(label_data.drop(target, axis=1), label_data[target])
-            kfold_means = train_score_model(target, sel_label_data_scaled_df, model)
+            kfold_means = train_score_model(target, label_data, model)
 
             # Print classification report of aggregated predictions.
             print(classification_report(y_true=true_class, y_pred=pred_class))
@@ -673,8 +674,8 @@ if __name__ == '__main__':
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            experiment_l(base_data, 'Label')
-            # experiment_l(base_data, 'attack_cat')
+            # experiment_l(base_data, 'Label')
+            experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
