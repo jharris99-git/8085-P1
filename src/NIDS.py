@@ -41,7 +41,7 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
-        data = pd.read_csv('./test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
+        data = pd.read_csv('../test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
                            names=['srcip', 'sport', 'dstip', 'dsport', 'proto', 'state', 'dur', 'sbytes', 'dbytes',
                                   'sttl', 'dttl', 'sloss', 'dloss', 'service', 'Sload', 'Dload', 'Spkts', 'Dpkts',
                                   'swin', 'dwin', 'stcpb', 'dtcpb', 'smeansz', 'dmeansz', 'trans_depth', 'res_bdy_len',
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                             data = scaler.fit_transform(data)
                             data = pd.DataFrame(data)
                             features = data.columns
-                        case 'label_CHI':
+                        case 'Label_CHI':
                             mdl_url = '../models/Label_CHI.pkl'
                             features = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack']
                         case _:
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                             features = data.columns
                         case 'attack_cat_CHI':
                             mdl_url = '../models/attack_cat_CHI.pkl'
-                            features = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'Sload', 'Dload', 'Spkts']
+                            features = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit', 'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts', 'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss', 'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur', 'service_-', 'proto_tcp', 'state_FIN', 'service_dns']
                         case _:
                             print('invalid classifer model')
                             exit(2)
