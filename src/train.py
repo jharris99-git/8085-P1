@@ -254,44 +254,34 @@ def experiment_l(data: pd.DataFrame, target: str):
     ac_data = pd.DataFrame(data)
     ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
     ac_data = ac_data.drop('Label', axis=1)
-
     match target:
         case 'Label':
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
             # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-            mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            mdl_1.fit(label_data.drop(target, axis=1), label_data[target])
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
-            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            sel_label_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime',
+                              'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt',
+                              'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src',
+                              'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl',
+                              'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp',
+                              'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt',
+                              'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth',
+                              'is_ftp_login', 'synack']
+
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model(target, label_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
             true_class = []
             pred_class = []
 
-            sel_label_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime',
-                              'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts',
-                              'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src',
-                              'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl',
-                              'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp',
-                              'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt',
-                              'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login',
-                              'synack', 'Label']
-
-            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            sel_label_data = label_data[sel_label_cols]
-            # mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
-
-            # Normalize the data
-            scaler = StandardScaler()
-            scaled = scaler.fit_transform(sel_label_data)
-            # Convert scaled arrays back to DataFrames
-            sel_label_data_scaled_df = pd.DataFrame(scaled, columns=sel_label_data.columns)
-
-            mdl_2.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
-            kfold_means_2 = train_score_model('Label', sel_label_data_scaled_df, mdl_2)
+            kfold_means_2 = train_score_model(target, label_data[sel_label_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
@@ -302,40 +292,40 @@ def experiment_l(data: pd.DataFrame, target: str):
             pred_class = []
 
         case 'attack_cat':
-            mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
-            kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~ Attack Category ~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-            # Clear aggregated values.
-            true_class = []
-            pred_class = []
+            # ~~ Attack Category Feature Selection ~~ #
 
             # Factorize Attack Category
-            factor = pd.factorize(ac_data['attack_cat'])
+            factor = pd.factorize(ac_data[target])
             ac_data.attack_cat = factor[0]
             definitions = factor[1]
+            print(ac_data.attack_cat.head())
+            print(definitions)
 
-            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
+
             sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
                            'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
                            'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
                            'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
-                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
+                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns']
 
-            sel_ac_data = ac_data[sel_ac_cols]
-            # Normalize the data
-            scaler = StandardScaler()
-            scaled = scaler.fit_transform(sel_ac_data.drop(columns=target))
-            # Convert scaled arrays back to DataFrames
-            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
-            sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
-            # Ensure the target variable is integer type
-            sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
+            mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
-            mdl_2.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means_2 = train_score_model('attack_cat', sel_ac_data_scaled_df, mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class,
-                                                                target_names=definitions))
+            kfold_means_1 = train_score_model(target, ac_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model(target, ac_data[sel_ac_cols], mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
@@ -593,11 +583,13 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             sel_label_data = label_data[sel_label_data_cols]
 
             # ~~~~~~~ Label Model Training ~~~~~~~ #
+
             # Normalize the data
             scaler = StandardScaler()
-            scaled = scaler.fit_transform(sel_label_data)
-            # Convert scaled arrays back to DataFrames
-            sel_label_data_scaled_df = pd.DataFrame(scaled, columns=sel_label_data.columns)
+            scaled_features = scaler.fit_transform(sel_label_data.drop(columns=target))  # Only scale the features
+            # Combine scaled features with the original target
+            sel_label_data_scaled_df = pd.DataFrame(scaled_features, columns=sel_label_data.columns.drop(target))
+            sel_label_data_scaled_df[target] = sel_label_data[target]  # Add the original target back
 
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
@@ -631,7 +623,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Factorize Attack Category
             factor = pd.factorize(ac_data['attack_cat'])
-            ac_data.attack_cat = factor[0].astype(int)
+            ac_data.attack_cat = factor[0]
             definitions = factor[1]
             print(ac_data.attack_cat.head())
             print(definitions)
@@ -639,14 +631,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Separate features and target
             y = ac_data[target]
             x = ac_data.drop(target, axis=1)
-
-            # Convert categorical features to numerical using LabelEncoder
-            label_encoder = LabelEncoder()
-            for column in x.select_dtypes(include=['object', 'category']).columns:
-                x[column] = label_encoder.fit_transform(x[column])
-
-            # Remove constant columns (those with zero variance)
-            x = x.loc[:, (x != x.iloc[0]).any()]
 
             # Apply the chi-square test
             chi2_scores, p_values = chi2(x, y)
@@ -678,9 +662,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Convert scaled arrays back to DataFrames
             sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
             sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
-
-            # Ensure the target variable is integer type
-            sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
             model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
@@ -791,10 +772,10 @@ if __name__ == '__main__':
             # experiment_K(base_data, 'Label')
             experiment_K(base_data, 'attack_cat')
         case 'L':
-            # feature_sel_test_L(base_data, 'Label')
+            feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
             # experiment_l(base_data, 'Label')
-            experiment_l(base_data, 'attack_cat')
+            # experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
