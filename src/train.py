@@ -603,7 +603,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Factorize Attack Category
             factor = pd.factorize(ac_data['attack_cat'])
-            ac_data.attack_cat = factor[0].astype(int)
+            ac_data.attack_cat = factor[0]
             definitions = factor[1]
             print(ac_data.attack_cat.head())
             print(definitions)
@@ -611,14 +611,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Separate features and target
             y = ac_data[target]
             x = ac_data.drop(target, axis=1)
-
-            # Convert categorical features to numerical using LabelEncoder
-            label_encoder = LabelEncoder()
-            for column in x.select_dtypes(include=['object', 'category']).columns:
-                x[column] = label_encoder.fit_transform(x[column])
-
-            # Remove constant columns (those with zero variance)
-            x = x.loc[:, (x != x.iloc[0]).any()]
 
             # Apply the chi-square test
             chi2_scores, p_values = chi2(x, y)
@@ -650,9 +642,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Convert scaled arrays back to DataFrames
             sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
             sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
-
-            # Ensure the target variable is integer type
-            sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
             model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
@@ -752,7 +741,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'K'
+    NAME = 'L'
 
     match NAME:
         case 'J':
@@ -765,9 +754,9 @@ if __name__ == '__main__':
             experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
-            # feature_sel_test_L(base_data, 'attack_cat')
+            feature_sel_test_L(base_data, 'attack_cat')
             # experiment_l(base_data, 'Label')
-            experiment_l(base_data, 'attack_cat')
+            # experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
