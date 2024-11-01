@@ -253,7 +253,7 @@ def experiment_l(data: pd.DataFrame, target: str):
                               'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp',
                               'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt',
                               'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth',
-                              'is_ftp_login', 'synack']
+                              'is_ftp_login', 'synack', 'Label']
 
             mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
@@ -295,7 +295,7 @@ def experiment_l(data: pd.DataFrame, target: str):
                            'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
                            'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
                            'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
-                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns']
+                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
 
             mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
@@ -743,7 +743,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'L'
 
     match NAME:
         case 'J':
@@ -755,10 +755,10 @@ if __name__ == '__main__':
             # experiment_K(base_data, 'Label')
             experiment_K(base_data, 'attack_cat')
         case 'L':
-            feature_sel_test_L(base_data, 'Label')
+            # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            # experiment_l(base_data, 'Label')
-            # experiment_l(base_data, 'attack_cat')
+            experiment_l(base_data, 'Label')
+            experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
