@@ -60,24 +60,32 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-
-            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            # Create RFC for fitting with no feature selection.
             mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
+            # Define features for training and scoring.
             sel_label_cols = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'dloss', 'Sload', 'Dload', 'Spkts', 'Dpkts', 'dwin', 'dtcpb', 'smeansz', 'dmeansz', 'Sjit', 'Djit', 'Sintpkt', 'Dintpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_dport_ltm', 'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'state_CLO', 'state_FIN', 'Label']
 
+            # Create RFC for fitting with feature selection.
             mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
+            # Train and score general model, returning the average f1 score.
             kfold_means_1 = train_score_model('Label', label_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
+            # Train and score fs model, returning the average f1 score.
             kfold_means_2 = train_score_model('Label', label_data[sel_label_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
+            # Compare average f1 scores, resolving which does better. Simpler model wins in case of a tie.
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
 
             # Clear aggregated values.
-
             true_class = []
             pred_class = []
 
@@ -86,8 +94,6 @@ def experiment_j(data: pd.DataFrame, cat: str):
             # ~~~~~~~~~~~ Attack Category ~~~~~~~~~~~ #
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-            # ~~ Attack Category Feature Selection ~~ #
-
             # Factorize Attack Category
             factor = pd.factorize(ac_data['attack_cat'])
             ac_data.attack_cat = factor[0]
@@ -95,13 +101,16 @@ def experiment_j(data: pd.DataFrame, cat: str):
             print(ac_data.attack_cat.head())
             print(definitions)
 
-            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            # Create RFC for fitting with no feature selection.
             mdl_1 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
+            # Define features for training and scoring.
             sel_ac_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime', 'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts', 'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src', 'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl', 'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp', 'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt', 'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login', 'synack', 'attack_cat']
 
+            # Create RFC for fitting with feature selection.
             mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
+            # Train and score general model, returning the average f1 score.
             kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
@@ -110,14 +119,15 @@ def experiment_j(data: pd.DataFrame, cat: str):
             true_class = []
             pred_class = []
 
+            # Train and score fs model, returning the average f1 score.
             kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
+            # Compare average f1 scores, resolving which does better. Simpler model wins in case of a tie.
             result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
             print(result[0], "proved more reliable than", result[1])
 
             # Clear aggregated values.
-
             true_class = []
             pred_class = []
 
@@ -155,7 +165,7 @@ def experiment_l(data: pd.DataFrame, target: str):
 
             mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
             sel_label_data = label_data[sel_label_cols]
-            mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
+            # mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
 
             kfold_means_1 = train_score_model('Label', label_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
@@ -621,8 +631,7 @@ def aggregating_f1_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average='macro')
 
 
-def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier, folds: int = 5) \
-        -> (str, SKLClassifier):
+def train_score_model(target_col: str, data: pd.DataFrame, model: SKLClassifier, folds: int = 5):
     """
 
     :param target_col:
@@ -661,12 +670,12 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'J'
 
     match NAME:
         case 'J':
             # feature_sel_test_J(base_data, 'attack_cat')
-            experiment_j(base_data, 'attack_cat')
+            experiment_j(base_data, 'Label')
         case 'K':
             # feature_sel_test_K(base_data, 'Label')
             feature_sel_test_K(base_data, 'attack_cat')

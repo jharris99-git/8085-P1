@@ -17,13 +17,13 @@ pd.set_option('display.width', 5000)
 features = []
 
 expected_dtypes = {'srcip': 'str',
-                       'sport': 'str',
-                       'dstip': 'str',
-                       'dsport': 'str',
-                       'proto': proto_dtype,
-                       'state': state_dtype,
-                       'service': service_dtype
-                       }
+                   'sport': 'str',
+                   'dstip': 'str',
+                   'dsport': 'str',
+                   'proto': proto_dtype,
+                   'state': state_dtype,
+                   'service': service_dtype
+                   }
 
 parser = argparse.ArgumentParser(
     prog='NIDS',
@@ -40,6 +40,7 @@ parser.add_argument('-m', '--model', action='store_const')
 if __name__ == '__main__':
     args = parser.parse_args()
     try:
+        # Parse data, using pre-defined categorical dtypes for certain columns.
         data = pd.read_csv('./test_data/' + args.testset, low_memory=False, dtype=expected_dtypes,
                            names=['srcip', 'sport', 'dstip', 'dsport', 'proto', 'state', 'dur', 'sbytes', 'dbytes',
                                   'sttl', 'dttl', 'sloss', 'dloss', 'service', 'Sload', 'Dload', 'Spkts', 'Dpkts',
@@ -49,18 +50,19 @@ if __name__ == '__main__':
                                   'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_src_dport_ltm',
                                   'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'attack_cat', 'Label'])
 
-        # TODO: Data preparation
-
+        # Prepare data
         data = prune(data)
         data = encode(data)
 
         mdl_url = ''
 
+        # If --model is passed as an argument, select chosen model from ./models folder.
         if args.model:
             mdl_url = './models' + args.model
         else:
             match args.task:
                 case 'Label':
+                    # Label classifier and feature selector.
                     match args.classifier:
                         case 'Label_RFC':
                             mdl_url = './models/Label_RFC.pkl'
@@ -75,6 +77,7 @@ if __name__ == '__main__':
                             print('invalid classifer model')
                             exit(2)
                 case 'attack_cat':
+                    # Attack category classifier and feature selector.
                     match args.classifier:
                         case 'attack_cat_RFC':
                             mdl_url = './models/attack_cat_RFC.pkl'
@@ -100,6 +103,8 @@ if __name__ == '__main__':
 
         x_test = None
         cats = None
+
+        # Cut features and enumerate possible results.
         match args.task:
             case 'Label':
                 x_test = data[features]
@@ -109,13 +114,13 @@ if __name__ == '__main__':
                 cats = ['Generic', 'Fuzzers', 'Exploits', 'DoS', 'Reconnaissance',
                         'Backdoor', 'Analysis', 'Shellcode', 'Worms']
 
+        # Predict using the input data rows.
         y_pred = mdl.predict(x_test)
+
+        # Force predictions to int and convert from enumerated value (could have been one line, no time to test).
         y_pred = [int(val) for val in y_pred]
         y_pred_cat = [cats[pred_val] for pred_val in y_pred]
         print('Predicted values: ', np.array(y_pred_cat))
-
-        # Can't use bc mystery test data won't have y_true
-        # print(classification_report(y_true=data['attack_cat'], y_pred=y_pred))
 
     except pd.errors.ParserError as e:  # Hopefully works
         print('invalid test data')
