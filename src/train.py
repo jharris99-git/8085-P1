@@ -123,6 +123,107 @@ def experiment_j(data: pd.DataFrame, cat: str):
             pred_class = []
 
 
+def experiment_l(data: pd.DataFrame, target: str):
+    # Used for aggregated classification report in KFold
+    global true_class
+    global pred_class
+
+    # Split data for label classification
+    label_data = pd.DataFrame(data)
+    label_data = label_data.drop('attack_cat', axis=1)
+
+    # Split data for attack category classification
+    ac_data = pd.DataFrame(data)
+    ac_data = ac_data.drop(ac_data[ac_data.Label == 0].index, axis=0)
+    ac_data = ac_data.drop('Label', axis=1)
+
+    match target:
+        case 'Label':
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~ Label ~~~~~~~~~~~~~~~~ #
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+            mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+
+            sel_label_cols = ['stcpb', 'dtcpb', 'Sload', 'Dload', 'dbytes', 'res_bdy_len', 'sbytes', 'Stime', 'Ltime',
+                              'Djit', 'Sjit', 'dmeansz', 'sttl', 'Sintpkt', 'swin', 'dwin', 'Dpkts', 'Dintpkt', 'Spkts',
+                              'dloss', 'ct_dst_src_ltm', 'ct_src_dport_ltm', 'ct_srv_dst', 'ct_srv_src',
+                              'ct_dst_sport_ltm', 'dttl', 'smeansz', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_state_ttl',
+                              'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp',
+                              'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt',
+                              'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth', 'is_ftp_login',
+                              'synack', 'Label']
+
+            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
+            sel_label_data = label_data[sel_label_cols]
+            mdl_2.fit(sel_label_data.drop(target, axis=1), sel_label_data[target])
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model('Label', sel_label_data, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
+        case 'attack_cat':
+            # Factorize Attack Category
+            factor = pd.factorize(ac_data['attack_cat'])
+            ac_data.attack_cat = factor[0]
+            definitions = factor[1]
+            print(ac_data.attack_cat.head())
+            print(definitions)
+
+            mdl_1 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+
+            sel_ac_cols = ['dtcpb', 'stcpb', 'Sload', 'Dload', 'sbytes', 'Sjit', 'dbytes', 'res_bdy_len', 'Djit',
+                              'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
+                              'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
+                              'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
+                              'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
+
+            mdl_2 = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+
+            kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
+            sel_ac_data = ac_data[sel_ac_cols]
+            # Normalize the data
+            scaler = StandardScaler()
+            scaled = scaler.fit_transform(sel_ac_data.drop(columns=target))
+            # Convert scaled arrays back to DataFrames
+            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
+            sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
+            # Ensure the target variable is integer type
+            sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
+
+            mdl_2.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
+            kfold_means_2 = train_score_model('attack_cat', ac_data[sel_ac_cols], mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
+
+
+
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
     # Feature Selection Method:     SelectFromModel
     # Chosen Classiifier:           RandomForestClassifier
@@ -374,14 +475,6 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             x = label_data.drop(target, axis=1)  # Features (excluding the target labels)
             y = label_data[target]  # Target variable (either 'attack_cat' or 'Label')
 
-            # Convert categorical features to numerical using LabelEncoder
-            label_encoder = LabelEncoder()
-            for column in x.select_dtypes(include=['object', 'category']).columns:
-                x[column] = label_encoder.fit_transform(x[column])
-
-            # Remove constant columns (those with zero variance) (used for attack_cat)
-            x = x.loc[:, (x != x.iloc[0]).any()]
-
             # Apply the chi-square test
             chi2_scores, p_values = chi2(x, y)
             # Create a DataFrame with the results
@@ -411,8 +504,8 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
 
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            # model.fit(sel_label_data.drop('Label', axis=1), sel_label_data['Label'])
             model.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
+            # model.fit(label_data.drop(target, axis=1), label_data[target])
             kfold_means = train_score_model(target, sel_label_data_scaled_df, model)
 
             # Print classification report of aggregated predictions.
@@ -464,10 +557,9 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Create a DataFrame with the results
             chi2_results = pd.DataFrame({'Feature': x.columns, 'Chi2 Score': chi2_scores, 'p-value': p_values})
             # Filter results with p-value = 0 & highest chi2 Score
-            # sel_chi2_results = chi2_results[chi2_results['p-value'] == 0]
-            # sel_chi2_results = sel_chi2_results.sort_values(by='Chi2 Score', ascending=False)
-            sel_chi2_results = chi2_results.head(10)
-            # sel_chi2_results = sel_chi2_results.head(10)
+            sel_chi2_results = chi2_results[chi2_results['p-value'] == 0]
+            sel_chi2_results = sel_chi2_results.sort_values(by='Chi2 Score', ascending=False)
+            sel_chi2_results = sel_chi2_results.head(35) #seems like a good cutoff
 
             # Output results
             print(f'Chi-Square Test Results ({target}):')
@@ -481,52 +573,31 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             sel_ac_data_cols = selected_features.tolist() + [target]
             sel_ac_data = ac_data[sel_ac_data_cols]
 
-            # Check for multicollinearity and remove highly correlated features
-            # corr_matrix = sel_ac_data.corr().abs()
-            # upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-            # to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
-            # sel_ac_data = sel_ac_data.drop(columns=to_drop)
-
             # ~~ Attack Category Model Training ~~ #
-
-            # Split data into training and testing sets
-            X_train, X_test, y_train, y_test = train_test_split(sel_ac_data.drop('attack_cat', axis=1),
-                                                                sel_ac_data['attack_cat'], test_size=0.2,
-                                                                random_state=42)
 
             # Normalize the data
             scaler = StandardScaler()
-            X_train_scaled = scaler.fit_transform(X_train)
-            X_test_scaled = scaler.transform(X_test)
-            scaled = scaler.fit_transform(sel_ac_data)
+            scaled = scaler.fit_transform(sel_ac_data.drop(columns=target))
 
             # Convert scaled arrays back to DataFrames
-            sel_ac_data_train_scaled_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
-            sel_ac_data_train_scaled_df['attack_cat'] = y_train.values  # Add the target back to the DataFrame
-            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns)
+            sel_ac_data_scaled_df = pd.DataFrame(scaled, columns=sel_ac_data.columns.drop(target))
+            sel_ac_data_scaled_df['attack_cat'] = sel_ac_data['attack_cat'].values
 
             # Ensure the target variable is integer type
             sel_ac_data_scaled_df[target] = sel_ac_data_scaled_df[target].astype(int)
 
-            model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-            model.fit(sel_ac_data_train_scaled_df.drop(target, axis=1), sel_ac_data_train_scaled_df[target])
-            # model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
-            kfold_means = train_score_model(target, sel_ac_data_train_scaled_df, model, 30)
-            # kfold_means = train_score_model(target, sel_ac_data_scaled_df, model, 30)
+            model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            model.fit(sel_ac_data_scaled_df.drop(target, axis=1), sel_ac_data_scaled_df[target])
+            kfold_means = train_score_model(target, sel_ac_data_scaled_df, model, 30)
             print(classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
-            # Train on the full training set and evaluate on the test set
-            # model.fit(X_train_scaled, y_train)
-            # y_pred = model.predict(X_test_scaled)
-            # print(classification_report(y_true=y_test, y_pred=y_pred))
-
-            if kfold_means > 0.45:
-                final_y = sel_ac_data_train_scaled_df[target]
-                final_x = sel_ac_data_train_scaled_df.drop(target, axis=1)
-
-                model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
-                model_fin.fit(final_x, final_y)
-                save_pkl('attack_cat_CHI', model_fin)
+            # if kfold_means > 0.45:
+            #     final_y = sel_ac_data_scaled_df[target]
+            #     final_x = sel_ac_data_scaled_df.drop(target, axis=1)
+            #
+            #     model_fin = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, p=1, leaf_size=25, weights='distance')
+            #     model_fin.fit(final_x, final_y)
+            #     save_pkl('attack_cat_CHI', model_fin)
 
             true_class = []
             pred_class = []
@@ -617,13 +688,16 @@ if __name__ == '__main__':
 
     match NAME:
         case 'J':
-            feature_sel_test_J(base_data, 'attack_cat')
+            # feature_sel_test_J(base_data, 'attack_cat')
+            experiment_j(base_data, 'attack_cat')
         case 'K':
             feature_sel_test_K(base_data, 'Label')
             # feature_sel_test_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
-            feature_sel_test_L(base_data, 'attack_cat')
+            # feature_sel_test_L(base_data, 'attack_cat')
+            experiment_l(base_data, 'Label')
+            # experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
