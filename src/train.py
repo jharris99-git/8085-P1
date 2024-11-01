@@ -566,11 +566,13 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             sel_label_data = label_data[sel_label_data_cols]
 
             # ~~~~~~~ Label Model Training ~~~~~~~ #
+
             # Normalize the data
             scaler = StandardScaler()
-            scaled = scaler.fit_transform(sel_label_data)
-            # Convert scaled arrays back to DataFrames
-            sel_label_data_scaled_df = pd.DataFrame(scaled, columns=sel_label_data.columns)
+            scaled_features = scaler.fit_transform(sel_label_data.drop(columns=target))  # Only scale the features
+            # Combine scaled features with the original target
+            sel_label_data_scaled_df = pd.DataFrame(scaled_features, columns=sel_label_data.columns.drop(target))
+            sel_label_data_scaled_df[target] = sel_label_data[target]  # Add the original target back
 
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
@@ -741,7 +743,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = 'L'
+    NAME = ''
 
     match NAME:
         case 'J':
@@ -753,9 +755,9 @@ if __name__ == '__main__':
             # experiment_K(base_data, 'Label')
             experiment_K(base_data, 'attack_cat')
         case 'L':
-            # feature_sel_test_L(base_data, 'Label')
+            feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            experiment_l(base_data, 'Label')
+            # experiment_l(base_data, 'Label')
             # experiment_l(base_data, 'attack_cat')
         case _:
             pass
