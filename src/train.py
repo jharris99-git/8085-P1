@@ -122,6 +122,97 @@ def experiment_j(data: pd.DataFrame, cat: str):
             true_class = []
             pred_class = []
 
+def experiment_K(data: pd.DataFrame, target: str):
+    # Principal Component Analysis (PCA)
+    # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
+    # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
+    # checking shape
+    global true_class
+    global pred_class
+
+    match target:
+        case 'Label':
+            label_data = pd.DataFrame(data)
+            label_data = label_data.drop('attack_cat', axis=1)
+
+            train_data_x = label_data.drop('Label', axis=1)
+            train_data_y = label_data['Label']
+
+            scaler = StandardScaler()
+            train_data_x = scaler.fit_transform(train_data_x)
+
+            # Importing PCA
+            from sklearn.decomposition import PCA
+            # Let's say, components = 15
+            pca = PCA(n_components=50)
+            pca.fit(train_data_x)
+            pca_data = pca.transform(train_data_x)
+            train_data = pd.DataFrame(pca_data)
+            train_data[target] = train_data_y
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model('Label', label_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model('Label', train_data, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+        case 'attack_cat':
+            ack_data = pd.DataFrame(data)
+            ack_data = ack_data.drop('Label', axis=1)
+            factor = pd.factorize(ack_data['attack_cat'])
+            ack_data.attack_cat = factor[0]
+
+            train_data_x = ack_data.drop('attack_cat', axis=1)
+            train_data_y = ack_data['attack_cat']
+
+            scaler = StandardScaler()
+            train_data_x = scaler.fit_transform(train_data_x)
+
+            # Importing PCA
+            from sklearn.decomposition import PCA
+            # Let's say, components = 15
+            pca = PCA(n_components=50)
+            pca.fit(train_data_x)
+            pca_data = pca.transform(train_data_x)
+            train_data = pd.DataFrame(pca_data)
+            train_data[target] = train_data_y
+
+            # Create RFC for use in a SelectFromModel feature selector and fit to determine column importance.
+            mdl_1 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+            mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
+
+            kfold_means_1 = train_score_model('attack_cat', ack_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            true_class = []
+            pred_class = []
+
+            kfold_means_2 = train_score_model('attack_cat', train_data, mdl_2)
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            result = "Feature Selection", "No Feature Selection" if kfold_means_2 - kfold_means_1 >= 0 else "No Feature Selection", "Feature Selection"
+            print(result[0], "proved more reliable than", result[1])
+
+            # Clear aggregated values.
+
+            true_class = []
+            pred_class = []
+
+
 
 def experiment_l(data: pd.DataFrame, target: str):
     # Used for aggregated classification report in KFold
@@ -220,9 +311,6 @@ def experiment_l(data: pd.DataFrame, target: str):
             # Clear aggregated values.
             true_class = []
             pred_class = []
-
-
-
 
 def feature_sel_test_J(data: pd.DataFrame, cat: str):
     # Feature Selection Method:     SelectFromModel
@@ -363,45 +451,24 @@ def feature_sel_test_J(data: pd.DataFrame, cat: str):
             true_class = []
             pred_class = []
 
-
 def feature_sel_test_K(data: pd.DataFrame, target: str):
-    # Principal Component Analysis (PCA)
-    # What it does: PCA reduces the dimensionality of the dataset by transforming the features into a smaller set of uncorrelated components. It identifies the most significant features by how much variance they explain.
-    # How to use: You can use sklearn.decomposition.PCA to reduce the features and check how much variance each principal component explains.
-    # checking shape
     train_data_x = None
     train_data_y = None
     match target:
         case 'Label':
-            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
             label_data = pd.DataFrame(data)
             label_data = label_data.drop('attack_cat', axis=1)
 
             train_data_x = label_data.drop('Label', axis=1)
             train_data_y = label_data['Label']
         case 'attack_cat':
-            # trainData = data.drop(['Label', 'attack_cat'], axis=1)
             ack_data = pd.DataFrame(data)
             ack_data = ack_data.drop('Label', axis=1)
-            train_data_x = ack_data.drop('attack_cat', axis=1)
             factor = pd.factorize(ack_data['attack_cat'])
             ack_data.attack_cat = factor[0]
-            train_data_y = ack_data['attack_cat']
 
-    # # Mean
-    # X_mean = train_data_x.mean()
-    #
-    # # Standard deviation
-    # X_std = train_data_x.std()
-    #
-    # # Standardization
-    # Z = (train_data_x - X_mean) / X_std
-    # # Importing PCA
-    # from sklearn.decomposition import PCA
-    # # Let's say, components = 15
-    # pca = PCA(n_components=50)
-    # pca.fit(Z)
-    # x_pca = pca.transform(Z)
+            train_data_x = ack_data.drop('attack_cat', axis=1)
+            train_data_y = ack_data['attack_cat']
 
     # Uncomment to generate models
     global true_class
@@ -411,7 +478,6 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     train_data_x = scaler.fit_transform(train_data_x)
     train_data = pd.DataFrame(train_data_x)
     train_data[target] = train_data_y
-
 
     # model = MLPClassifier(max_iter=300, verbose=1)
     # GRID = [
@@ -430,7 +496,6 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     # random_search.fit(train_data, train_data_y)
     # print(random_search.best_params_)
 
-
     model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='relu',early_stopping=True, max_iter=300, verbose=1)
     # # Define model for kfold using selected features
     kfold_means = train_score_model(target, train_data, model)
@@ -439,7 +504,6 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     print(classification_report(y_true=true_class, y_pred=pred_class))
 
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    # kfold_means = 1
     if kfold_means > 0.95:
         y = train_data[target]
         x = train_data.drop(target, axis=1)
@@ -691,8 +755,10 @@ if __name__ == '__main__':
             # feature_sel_test_J(base_data, 'attack_cat')
             experiment_j(base_data, 'attack_cat')
         case 'K':
-            feature_sel_test_K(base_data, 'Label')
+            # feature_sel_test_K(base_data, 'Label')
             # feature_sel_test_K(base_data, 'attack_cat')
+            # experiment_K(base_data, 'Label')
+            experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
