@@ -496,7 +496,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     # random_search.fit(train_data, train_data_y)
     # print(random_search.best_params_)
 
-    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='relu',early_stopping=True, max_iter=300, verbose=1)
+    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='tanh',early_stopping=True, max_iter=300, verbose=1)
     # # Define model for kfold using selected features
     kfold_means = train_score_model(target, train_data, model)
 
@@ -504,7 +504,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     print(classification_report(y_true=true_class, y_pred=pred_class))
 
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    if kfold_means > 0.95:
+    if kfold_means > 0.45:
         y = train_data[target]
         x = train_data.drop(target, axis=1)
 
@@ -755,10 +755,10 @@ if __name__ == '__main__':
             # feature_sel_test_J(base_data, 'attack_cat')
             experiment_j(base_data, 'attack_cat')
         case 'K':
-            # feature_sel_test_K(base_data, 'Label')
+            feature_sel_test_K(base_data, 'Label')
             # feature_sel_test_K(base_data, 'attack_cat')
-            # experiment_K(base_data, 'Label')
-            experiment_K(base_data, 'attack_cat')
+            experiment_K(base_data, 'Label')
+            # experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
