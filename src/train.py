@@ -124,8 +124,8 @@ def experiment_j(data: pd.DataFrame, cat: str):
             start_time = time.time_ns()
 
             # Train and score general model, returning the average f1 score.
-            # kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
-            # print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            kfold_means_1 = train_score_model('attack_cat', ac_data, mdl_1)
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
             # Clear aggregated values.
 

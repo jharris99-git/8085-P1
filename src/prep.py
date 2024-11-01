@@ -129,5 +129,9 @@ if __name__ == '__main__':
 
     print(base_data.dtypes)
 
+    print(pd.read_csv('../datasets/prepped_label_data.csv', low_memory=False))
+
+    print(pd.read_csv('../datasets/prepped_attack_cat_data.csv', low_memory=False))
+
     # Do this column dropping in train.py
     # final_prep(base_data)
