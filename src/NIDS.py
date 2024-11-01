@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('testset')
 parser.add_argument('classifier')
 parser.add_argument('task')
-parser.add_argument('-m', '--model', action='store_const')
+parser.add_argument('-m', '--model')
 
 
 if __name__ == '__main__':
