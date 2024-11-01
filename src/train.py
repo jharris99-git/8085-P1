@@ -328,7 +328,7 @@ def experiment_l(data: pd.DataFrame, target: str):
             start_time = time.time_ns()
 
             kfold_means_1 = train_score_model(target, ac_data, mdl_1)
-            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             # Clear aggregated values.
 
@@ -336,7 +336,7 @@ def experiment_l(data: pd.DataFrame, target: str):
             pred_class = []
 
             kfold_means_2 = train_score_model(target, ac_data[sel_ac_cols], mdl_2)
-            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+            print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class, target_names=definitions))
 
             # End time and calc diff
             end_time = time.time_ns()
@@ -790,7 +790,7 @@ if __name__ == '__main__':
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            experiment_l(base_data, 'Label')
+            # experiment_l(base_data, 'Label')
             experiment_l(base_data, 'attack_cat')
         case _:
             pass
