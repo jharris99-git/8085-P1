@@ -270,7 +270,7 @@ def experiment_l(data: pd.DataFrame, target: str):
                               'sloss', 'state_INT', 'proto_tcp', 'state_FIN', 'state_CON', 'service_dns', 'proto_udp',
                               'service_-', 'proto_unas', 'service_ftp-data', 'service_ssh', 'tcprtt',
                               'ct_flw_http_mthd', 'ct_ftp_cmd', 'ackdat', 'service_smtp', 'trans_depth',
-                              'is_ftp_login', 'synack']
+                              'is_ftp_login', 'synack', 'Label']
 
             mdl_2 = RandomForestClassifier(n_estimators=200, verbose=0, n_jobs=12)
 
@@ -312,7 +312,7 @@ def experiment_l(data: pd.DataFrame, target: str):
                            'Sintpkt', 'Dintpkt', 'dmeansz', 'swin', 'dwin', 'dttl', 'smeansz', 'Spkts', 'Dpkts',
                            'Stime', 'Ltime', 'sloss', 'ct_dst_src_ltm', 'ct_srv_dst', 'ct_srv_src', 'dloss',
                            'ct_src_dport_ltm', 'ct_dst_ltm', 'ct_src_ ltm', 'ct_dst_sport_ltm', 'sttl', 'dur',
-                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns']
+                           'service_-', 'proto_tcp', 'state_FIN', 'service_dns', 'attack_cat']
 
             mdl_2 = RandomForestClassifier(n_estimators=180, verbose=0, n_jobs=10, class_weight='balanced_subsample')
 
@@ -519,7 +519,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     # random_search.fit(train_data, train_data_y)
     # print(random_search.best_params_)
 
-    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='relu',early_stopping=True, max_iter=300, verbose=1)
+    model = MLPClassifier(solver='adam', hidden_layer_sizes=(400, 400, 400, 400, 400), alpha=0.001, activation='tanh',early_stopping=True, max_iter=300, verbose=1)
     # # Define model for kfold using selected features
     kfold_means = train_score_model(target, train_data, model)
 
@@ -527,7 +527,7 @@ def feature_sel_test_K(data: pd.DataFrame, target: str):
     print(classification_report(y_true=true_class, y_pred=pred_class))
 
     # # If the mean f1 score of kfold tests > 0.95, fit the model with more estimators and save the binary.
-    if kfold_means > 0.95:
+    if kfold_means > 0.45:
         y = train_data[target]
         x = train_data.drop(target, axis=1)
 
@@ -760,22 +760,22 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'L'
 
     match NAME:
         case 'J':
             # feature_sel_test_J(base_data, 'attack_cat')
             experiment_j(base_data, 'attack_cat')
         case 'K':
-            # feature_sel_test_K(base_data, 'Label')
+            feature_sel_test_K(base_data, 'Label')
             # feature_sel_test_K(base_data, 'attack_cat')
-            # experiment_K(base_data, 'Label')
-            experiment_K(base_data, 'attack_cat')
+            experiment_K(base_data, 'Label')
+            # experiment_K(base_data, 'attack_cat')
         case 'L':
-            feature_sel_test_L(base_data, 'Label')
+            # feature_sel_test_L(base_data, 'Label')
             # feature_sel_test_L(base_data, 'attack_cat')
-            # experiment_l(base_data, 'Label')
-            # experiment_l(base_data, 'attack_cat')
+            experiment_l(base_data, 'Label')
+            experiment_l(base_data, 'attack_cat')
         case _:
             pass
 
