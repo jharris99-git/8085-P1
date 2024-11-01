@@ -259,6 +259,11 @@ def experiment_l(data: pd.DataFrame, target: str):
 
             kfold_means_1 = train_score_model(target, label_data, mdl_1)
             print("No Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
+
+            # Clear aggregated values.
+            true_class = []
+            pred_class = []
+
             kfold_means_2 = train_score_model(target, label_data[sel_label_cols], mdl_2)
             print("Feature Selection:\n", classification_report(y_true=true_class, y_pred=pred_class))
 
@@ -736,7 +741,7 @@ if __name__ == '__main__':
 
     base_data = process_data(base_data)
 
-    NAME = ''
+    NAME = 'L'
 
     match NAME:
         case 'J':
@@ -749,8 +754,8 @@ if __name__ == '__main__':
             experiment_K(base_data, 'attack_cat')
         case 'L':
             # feature_sel_test_L(base_data, 'Label')
-            feature_sel_test_L(base_data, 'attack_cat')
-            # experiment_l(base_data, 'Label')
+            # feature_sel_test_L(base_data, 'attack_cat')
+            experiment_l(base_data, 'Label')
             # experiment_l(base_data, 'attack_cat')
         case _:
             pass
