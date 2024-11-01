@@ -574,7 +574,7 @@ def feature_sel_test_L(data: pd.DataFrame, target: str):
             # Define model for kfold using selected features
             model = KNeighborsClassifier(n_neighbors=3, n_jobs=-1)
             model.fit(sel_label_data_scaled_df.drop(target, axis=1), sel_label_data_scaled_df[target])
-            kfold_means = train_score_model(target, label_data, model)
+            kfold_means = train_score_model(target, sel_label_data_scaled_df, model)
 
             # Print classification report of aggregated predictions.
             print(classification_report(y_true=true_class, y_pred=pred_class))
